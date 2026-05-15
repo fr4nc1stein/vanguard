@@ -1,0 +1,41 @@
+{
+  "name": "vanguard-vdp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:cf": "opennextjs-cloudflare build && wrangler pages dev --persist-to=.wrangler/state .open-next/assets",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "pages:build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && wrangler pages dev --persist-to=.wrangler/state .open-next/assets",
+    "deploy": "opennextjs-cloudflare build && wrangler deploy",
+    "db:migrate:local": "wrangler d1 execute vanguard-security --local --file=migrations/0001_schema.sql",
+    "db:migrate:remote": "wrangler d1 execute vanguard-security --file=migrations/0001_schema.sql"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1044.0",
+    "@aws-sdk/s3-request-presigner": "^3.1044.0",
+    "@clerk/nextjs": "^7.3.2",
+    "drizzle-orm": "^0.45.2",
+    "next": "16.0.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-markdown": "^10.1.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.19.8",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wrangler": "^4.86.0"
+  }
+}

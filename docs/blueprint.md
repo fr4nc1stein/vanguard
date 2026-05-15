@@ -1,0 +1,235 @@
+# Vanguard VDP — Architecture Blueprint
+
+## Overview
+
+A HackerOne-style vulnerability disclosure platform for Vanguard VDP. Researchers sign in, submit reports, and track status. Staff triage reports through a protected admin panel. All sensitive data is encrypted at rest.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16.2.5 (App Router) |
+| Runtime | Cloudflare Workers (Edge) via `@cloudflare/next-on-pages` |
+| Hosting | Cloudflare Pages |
+| Database | Cloudflare D1 (SQLite) |
+| ORM | Drizzle ORM (`drizzle-orm/d1`) |
+| Auth | Clerk v7 (`@clerk/nextjs`) |
+| Encryption | Web Crypto API — AES-GCM-256 |
+| Styling | Tailwind CSS |
+| Validation | Zod v4 |
+| Language | TypeScript (strict) |
+
+---
+
+## Cloudflare Bindings
+
+| Binding | Type | Name | Purpose |
+|---------|------|------|---------|
+| `DB` | D1 Database | `vanguard-security` | All report & audit data |
+
+> R2 was intentionally removed. File uploads are disabled (410). Researchers paste evidence links instead.
+
+---
+
+## Project Structure
+
+```
+vanguard-vdp/
+├── app/
+│   ├── page.tsx                        # Home — Security Policy
+│   ├── layout.tsx                      # Root layout + ClerkProvider
+│   ├── hall-of-fame/page.tsx           # Public Hall of Fame
+│   ├── submit/page.tsx                 # Submit form (auth required)
+│   ├── dashboard/page.tsx              # Researcher's report list
+│   ├── admin/page.tsx                  # Admin triage panel
+│   ├── admin/reports/[id]/page.tsx     # Admin report detail + triage
+│   ├── sign-in/[[...sign-in]]/page.tsx # Clerk sign-in (catch-all)
+│   ├── sign-up/[[...sign-up]]/page.tsx # Clerk sign-up (catch-all)
+│   ├── components/
+│   │   ├── SiteHeader.tsx              # Nav + Clerk user button
+│   │   ├── SiteFooter.tsx
+│   │   ├── ReportStatusBadge.tsx
+│   │   └── AuditLogTimeline.tsx
+│   └── api/
+│       ├── reports/route.ts            # POST (submit) + GET (list own)
+│       ├── reports/[id]/route.ts       # GET single report
+│       ├── admin/reports/route.ts      # GET all reports (admin)
+│       ├── admin/reports/[id]/status/route.ts  # PATCH triage action
+│       ├── admin/stats/route.ts        # GET dashboard stats
+│       ├── submit-report/route.ts      # Legacy stub (edge runtime)
+│       └── upload/presign/route.ts     # DISABLED — returns 410
+├── lib/
+│   ├── db/
+│   │   ├── index.ts                    # getDb(), getCfEnv()
+│   │   └── schema.ts                   # Drizzle table definitions
+│   ├── crypto.ts                       # AES-GCM-256 encrypt/decrypt + SHA-256 hash
+│   ├── validation.ts                   # Zod schemas (ReportSubmitSchema, TriageUpdateSchema)
+│   ├── auth.ts                         # requireRole(), getSessionRole()
+│   ├── audit.ts                        # logAudit()
+│   └── r2.ts                           # Unused — R2 removed (kept for type ref)
+├── migrations/
+│   └── 0001_schema.sql                 # D1 schema: reports + audit_logs tables
+├── middleware.ts                       # Clerk auth — protects /admin, /dashboard, /submit
+├── instrumentation.ts                  # setupDevPlatform() for local dev (Node runtime only)
+├── wrangler.toml                       # CF Pages config + D1 binding
+├── next.config.ts                      # Next.js config + serverExternalPackages
+└── .npmrc                              # legacy-peer-deps=true (needed for CF build tool)
+```
+
+---
+
+## Database Schema
+
+### `reports`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | TEXT PK | UUIDv4 |
+| `ref_id` | TEXT UNIQUE | BGP-YYYY-XXXX (public reference) |
+| `handle` | TEXT | Researcher handle (optional) |
+| `email_encrypted` | TEXT | AES-GCM ciphertext |
+| `email_iv` | TEXT | IV for email decryption |
+| `target` | TEXT | Affected platform |
+| `vuln_type` | TEXT | Vulnerability category |
+| `severity` | TEXT | Critical/High/Medium/Low/Info |
+| `title` | TEXT | Report title (plaintext) |
+| `body_encrypted` | TEXT | AES-GCM: description + steps + impact + evidence |
+| `body_iv` | TEXT | IV for body decryption |
+| `cvss` | TEXT | CVSS string (optional) |
+| `status` | TEXT | new/triaged/accepted/rejected/fixed/informational |
+| `assigned_to` | TEXT | Clerk user ID of triager |
+| `poc_files` | TEXT | JSON array (empty — R2 removed) |
+| `clerk_user_id` | TEXT | Clerk user ID of submitter |
+| `ip_hash` | TEXT | SHA-256(IP) — privacy-preserving |
+| `submitted_at` | INTEGER | Unix ms |
+| `updated_at` | INTEGER | Unix ms |
+
+### `audit_logs`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | TEXT PK | UUIDv4 |
+| `report_id` | TEXT FK | → reports.id (CASCADE DELETE) |
+| `actor_id` | TEXT | Clerk user ID |
+| `actor_email` | TEXT | Display only |
+| `action` | TEXT | report_submitted / status_changed / etc. |
+| `old_value` | TEXT | Previous value |
+| `new_value` | TEXT | New value |
+| `ip_hash` | TEXT | SHA-256(IP) |
+| `timestamp` | INTEGER | Unix ms |
+
+---
+
+## Auth & Roles
+
+Roles are set in Clerk `publicMetadata.role`:
+
+| Role | Access |
+|------|--------|
+| *(any signed-in user)* | Submit reports, view own dashboard |
+| `TRIAGER` | Admin panel, triage reports, change status |
+| `ADMIN` | All triage actions + terminal state overrides |
+
+Routes protected by `middleware.ts`:
+- `/admin(.*)` — requires auth (role check in handler)
+- `/api/admin(.*)` — requires auth (role check in handler)
+- `/dashboard(.*)` — requires auth
+- `/submit(.*)` — requires auth
+
+---
+
+## Security Design
+
+### Encryption
+- All sensitive report content (description, steps, impact, email) encrypted with **AES-GCM-256** before writing to D1
+- Key stored as `ENCRYPTION_KEY` env var (64 hex chars = 32 bytes)
+- Each encryption generates a fresh random 96-bit IV (never reused)
+- Only staff (TRIAGER/ADMIN) can decrypt report body — decryption is audit-logged
+
+### IP Privacy
+- Submitter IPs are **never stored in plaintext**
+- Stored as `SHA-256(ip)` — rate-limiting-friendly but not reversible
+
+### Input Validation
+- All API inputs validated with **Zod** before processing
+- Frontend validation mirrors server-side rules exactly (same min/max lengths) to prevent false success on 422 errors
+
+### Headers & CSP
+- Deployed on Cloudflare Pages which enforces HTTPS
+- Edge runtime (`export const runtime = 'edge'`) on all API routes and dynamic pages
+
+---
+
+## Local Development
+
+### Fast UI work (no D1)
+```bash
+npm run dev        # next dev — hot reload, no CF bindings
+```
+
+### Full Cloudflare stack (D1 writes to local SQLite)
+```bash
+npm run dev:cf     # builds + wrangler pages dev with local D1
+```
+> Server runs at `http://localhost:8788`
+> Data stored in `.wrangler/state/v3/d1/`
+
+### Query local data
+```bash
+npx wrangler d1 execute vanguard-security --local --command="SELECT ref_id, title, status FROM reports"
+```
+
+### Query remote (production) data
+```bash
+npx wrangler d1 execute vanguard-security --remote --command="SELECT ref_id, title, status FROM reports"
+```
+
+---
+
+## Deployment
+
+```bash
+npm run deploy
+# Runs: npx @cloudflare/next-on-pages && wrangler pages deploy
+# Output dir: .vercel/output/static
+```
+
+### Required environment variables (Cloudflare Pages → Settings → Variables)
+
+| Variable | Notes |
+|----------|-------|
+| `ENCRYPTION_KEY` | 64-char hex — `openssl rand -hex 32` |
+| `CLERK_SECRET_KEY` | From Clerk dashboard |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | From Clerk dashboard |
+| `DISCORD_WEBHOOK_URL` | Optional — new report notifications |
+
+### Required Clerk dashboard settings
+- Sign-in URL: `https://<your-domain>/sign-in`
+- Sign-up URL: `https://<your-domain>/sign-up`
+- After sign-in redirect: `/dashboard`
+- After sign-up redirect: `/dashboard`
+
+---
+
+## Production Status
+
+✅ **System is production-ready** — All core features implemented and tested.
+
+### Recent Updates (May 2026)
+
+- ✅ Clerk authentication fully integrated with proper redirects
+- ✅ Sign-in/Sign-up pages configured with `afterSignInUrl="/dashboard"`
+- ✅ Root layout configured with `signInUrl="/sign-in"` and `signUpUrl="/sign-up"`
+- ✅ Middleware protects all authenticated routes (`/admin`, `/dashboard`, `/submit`)
+- ✅ Role-based access control (RBAC) enforced at middleware and API levels
+- ✅ All API routes use edge runtime
+- ✅ Encryption and audit logging fully operational
+
+### Optional Cleanup Tasks
+
+| Item | Detail | Priority |
+|------|--------|----------|
+| `middleware.ts` deprecation | Next.js 16 deprecates `middleware.ts` in favour of `proxy.ts` — Clerk doesn't fully support proxy convention yet, leave as-is | Low |
+| `app/api/submit-report/route.ts` | Legacy stub route — safe to delete if not referenced | Low |
