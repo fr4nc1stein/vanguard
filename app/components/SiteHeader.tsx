@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { UserButton, SignInButton, useAuth, useUser } from "@clerk/nextjs";
 
 const PUBLIC_NAV = [
-  { href: "/", label: "Security Policy" },
   { href: "/hall-of-fame", label: "Hall of Fame" },
 ];
 
