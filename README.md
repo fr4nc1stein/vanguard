@@ -29,7 +29,7 @@ A HackerOne-style vulnerability disclosure platform. Security researchers sign i
 ## Features
 
 - **Submit reports** — authenticated, AES-GCM-256 encrypted, stored in D1
-- **Researcher dashboard** — view own submission history and status
+- **Researcher dashboard** — list own submissions with status badges (detail view and comments not yet built)
 - **Admin triage panel** — role-gated (TRIAGER/ADMIN), full audit log
 - **Hall of Fame** — public recognition of accepted researchers
 - **Security policy** — responsible disclosure guidelines and in-scope targets
@@ -129,6 +129,48 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 # Also safe to delete: lib/r2.ts, app/api/submit-report/route.ts
 # Also safe to remove: [[r2_buckets]] block in wrangler.toml
 ```
+
+## Roadmap
+
+Features that are planned or partially built but not yet complete.
+
+### My Reports (Researcher Dashboard)
+
+- **Report listing works** — authenticated researchers can see a list of their own submissions with status badges
+- **Report detail view not built** — clicking a report does not open a detail page; researchers cannot view the full contents of their own submission
+- **Researcher comments not built** — researchers cannot post follow-up comments or replies on their own reports (e.g. to provide additional PoC details or respond to a triager)
+
+### Admin Panel
+
+- **Report listing not working** — researchers can submit reports but the admin panel does not yet list them correctly; the listing view is broken/incomplete
+- **Triage actions not wired up** — status changes (accept, reject, close, duplicate) are present in the UI but not fully functional end-to-end
+- **Report detail view** — admin `/admin/reports/[id]` page needs polish and working triage actions
+- **Add/manage scope targets** — admins should be able to add, edit, and remove in-scope targets (currently hardcoded in `lib/validation.ts` and `app/submit/page.tsx`)
+- **Severity classification** — allow admins to set a severity level (Critical / High / Medium / Low / Informational) when triaging
+- **Bounty/reward tracking** — record and display reward amounts tied to resolved reports
+- **Researcher communication** — ability to leave comments or send messages to the submitting researcher directly from the admin panel
+- **Bulk actions** — mark multiple reports at once (e.g. bulk close, bulk assign)
+- **Assign to triager** — assign a specific report to a named triager for ownership
+- **CVE / advisory linking** — attach a CVE ID or public advisory URL to a resolved report
+- **Export** — download reports as CSV or JSON for audit purposes
+- **Dashboard stats** — summary cards (open, in-progress, resolved, bounties paid) on the admin home page
+
+### TRIAGER Role
+
+- Role is defined and enforced in middleware but the TRIAGER-specific permission boundaries are not implemented — currently TRIAGER and ADMIN have identical access
+- Intended scope: TRIAGERs can view and comment on reports, but cannot change status to `resolved` or `closed`, and cannot modify scope or settings
+
+### Hall of Fame
+
+- Currently static/sample data — real accepted researcher entries are not pulled from the database
+- Should be populated automatically when a report is marked `accepted` or `resolved` by an admin
+- Researcher handle, submission date, and optionally the CVE/advisory link should appear
+
+### General UI
+
+- Admin panel needs visual polish — table layout, pagination, and filter/search by status, severity, and date
+- Mobile layout improvements on the admin panel and report detail page
+- Email notifications to researchers when their report status changes
 
 ## License
 
