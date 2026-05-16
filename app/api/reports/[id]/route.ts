@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { getDb, getCfEnv } from '@/lib/db';
 import { reports } from '@/lib/db/schema';
 import { decryptText } from '@/lib/crypto';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { getSessionRole, hasRole } from '@/lib/auth';
 import { logAudit, getAuditLog } from '@/lib/audit';
 
@@ -46,6 +46,48 @@ export async function GET(
     // Get audit logs for staff
     const auditLogs = isStaff ? await getAuditLog(db, report.id) : [];
 
+    // Fetch reporter name from Clerk if staff
+    let reporterName = report.handle || 'Anonymous';
+    if (isStaff && report.clerkUserId) {
+      try {
+        const client = await clerkClient();
+        const reporter = await client.users.getUser(report.clerkUserId);
+        reporterName = reporter.firstName && reporter.lastName 
+          ? `${reporter.firstName} ${reporter.lastName}`.trim()
+          : reporter.username || reporter.emailAddresses?.[0]?.emailAddress || reporterName;
+      } catch (err) {
+        console.warn('[GET /api/reports/[id]] Failed to fetch reporter name:', err);
+      }
+    }
+
+    // Enrich audit logs with user names
+    const enrichedAuditLogs = await Promise.all(
+      auditLogs.map(async (log) => {
+        let actorName = log.actorEmail || log.actorId || 'System';
+        if (log.actorId && log.actorId.startsWith('user_')) {
+          try {
+            const client = await clerkClient();
+            const actor = await client.users.getUser(log.actorId);
+            actorName = actor.firstName && actor.lastName 
+              ? `${actor.firstName} ${actor.lastName}`.trim()
+              : actor.username || actor.emailAddresses?.[0]?.emailAddress || actorName;
+          } catch (err) {
+            // Fallback to email or ID if Clerk fetch fails
+          }
+        }
+        return {
+          id:         log.id,
+          action:     log.action,
+          actor_id:   log.actorId,
+          actor_name: actorName,
+          actor_email: log.actorEmail,
+          old_value:  log.oldValue,
+          new_value:  log.newValue,
+          timestamp:  new Date(log.timestamp).toISOString(),
+        };
+      })
+    );
+
     // Format body for display
     const bodyText = decryptedBody 
       ? `${decryptedBody.description}\n\n## Steps to Reproduce\n${decryptedBody.stepsToReproduce}\n\n## Impact\n${decryptedBody.impact}${decryptedBody.evidence ? `\n\n## Evidence\n${decryptedBody.evidence}` : ''}`
@@ -55,7 +97,7 @@ export async function GET(
       data: {
         id:          report.id,
         ref_id:      report.refId,
-        handle:      report.handle,
+        handle:      reporterName,
         target:      report.target,
         vuln_type:   report.vulnType,
         severity:    report.severity,
@@ -67,15 +109,7 @@ export async function GET(
         poc_files:   pocKeys,
         created_at:  new Date(report.submittedAt).toISOString(),
         updated_at:  new Date(report.updatedAt).toISOString(),
-        audit_logs:  auditLogs.map(log => ({
-          id:         log.id,
-          action:     log.action,
-          actor_id:   log.actorId,
-          actor_email: log.actorEmail,
-          old_value:  log.oldValue,
-          new_value:  log.newValue,
-          timestamp:  new Date(log.timestamp).toISOString(),
-        })),
+        audit_logs:  enrichedAuditLogs,
       },
     });
   } catch (err) {

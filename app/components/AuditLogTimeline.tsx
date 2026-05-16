@@ -7,6 +7,7 @@ export interface AuditEntry {
   actorId?: string | null;
   actor_email?: string | null;
   actor_id?: string | null;
+  actor_name?: string | null;
   action: string;
   oldValue?: string | null;
   newValue?: string | null;
@@ -65,7 +66,7 @@ export default function AuditLogTimeline({ logs }: { logs: AuditEntry[] }) {
             )}
 
             <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-              <span>{log.actorEmail ?? log.actor_email ?? log.actorId ?? log.actor_id}</span>
+              <span>{log.actor_name ?? log.actorEmail ?? log.actor_email ?? log.actorId ?? log.actor_id}</span>
               <span>·</span>
               <span>{formatTs(log.timestamp)}</span>
             </div>

@@ -26,7 +26,7 @@ interface ReportDetail {
   audit_logs?: AuditEntry[];
 }
 
-const SEVERITY_LEVELS = ["critical", "high", "medium", "low", "informational"] as const;
+const SEVERITY_LEVELS = ["Critical", "High", "Medium", "Low", "Info"] as const;
 
 // Valid status transitions (mirrors backend state machine)
 const NEXT_STATUSES: Record<string, string[]> = {
