@@ -113,7 +113,7 @@ export default function AdminDashboard() {
         {/* Page title */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">🛡️ Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">🛡️ Triage Dashboard</h1>
             <p className="text-sm text-gray-500 mt-0.5">Security report triage and management</p>
           </div>
         </div>
