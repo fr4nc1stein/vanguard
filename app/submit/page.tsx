@@ -246,25 +246,17 @@ export default function SubmitReport() {
               <p className="text-2xl font-mono font-bold text-blue-700">{referenceId}</p>
             </div>
 
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-gray-600 mb-8">
               We will acknowledge your report within <strong>48 hours</strong> and provide a full response within{" "}
               <strong>7 business days</strong>.
-            </p>
-            Updates will be sent to your registered account email.
-            <p className="text-sm text-gray-400 mb-8">
-              To follow up, email{" "}
-              <a href={`mailto:security@vanguardvdp.ph?subject=[${referenceId}]`} className="text-blue-600 hover:underline">
-                security@vanguardvdp.ph
-              </a>{" "}
-              quoting your reference number.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
-                href="/hall-of-fame"
+                href="/dashboard"
                 className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-lg text-sm hover:bg-blue-700 transition-colors"
               >
-                View Hall of Fame
+                View My Reports
               </Link>
               <button
                 onClick={() => { setReferenceId(null); setForm(EMPTY); setErrors({}); }}

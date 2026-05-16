@@ -18,10 +18,13 @@ import { ReportSubmitSchema } from '@/lib/validation';
 import { logAudit } from '@/lib/audit';
 import { auth } from '@clerk/nextjs/server';
 
-function generateRefId(): string {
+function generateRefId(severity: string): string {
   const year = new Date().getFullYear();
-  const num  = Math.floor(1000 + Math.random() * 9000);
-  return `BGP-${year}-${num}`;
+  // Use cryptographically secure random hex (8 chars = ~16M possibilities)
+  const random = crypto.randomUUID().slice(0, 8).toUpperCase();
+  // Severity code: C (Critical), H (High), M (Medium), L (Low), I (Info)
+  const severityCode = severity.charAt(0).toUpperCase();
+  return `VVDP-${severityCode}-${year}-${random}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -52,9 +55,9 @@ export async function POST(request: NextRequest) {
     const db = getDb(getCfEnv().DB);
 
     // ── Ensure unique refId ──────────────────────────────────────────────────
-    let refId = generateRefId();
+    let refId = generateRefId(data.severity);
     const existing = await db.select().from(reports).where(eq(reports.refId, refId)).get();
-    if (existing) refId = generateRefId(); // retry once
+    if (existing) refId = generateRefId(data.severity); // retry once
 
     // ── Encrypt sensitive fields ─────────────────────────────────────────────
     const fullBody = JSON.stringify({
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           embeds: [{
-            title:  `${sevEmoji[data.severity] ?? '⚪'} New Report [${refId}]: ${data.title}`,
+            title:  `${sevEmoji[data.severity] ?? '⚪'} New ${data.severity} Report [${refId}]`,
             color:  sevColor[data.severity] ?? 0x6b7280,
             fields: [
               { name: 'Reference',  value: refId,                            inline: true  },
