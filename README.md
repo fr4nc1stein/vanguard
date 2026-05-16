@@ -12,6 +12,8 @@ A HackerOne-style vulnerability disclosure platform. Security researchers sign i
 | [docs/ROLE_SETUP_INSTRUCTIONS.md](docs/ROLE_SETUP_INSTRUCTIONS.md) | How to assign ADMIN/TRIAGER roles in Clerk |
 | [docs/blueprint.md](docs/blueprint.md) | Architecture, data model, API surface, security design |
 | [docs/agent.md](docs/agent.md) | Developer persona — stack rules, failure modes, code patterns |
+| [ISSUES.md](ISSUES.md) | Known issues, edge runtime pitfalls, debugging tips |
+| [docs/ENTERPRISE_ADMIN_FEATURES.md](docs/ENTERPRISE_ADMIN_FEATURES.md) | Enterprise admin features roadmap and specifications |
 
 ## Tech Stack
 
@@ -28,11 +30,17 @@ A HackerOne-style vulnerability disclosure platform. Security researchers sign i
 
 ## Features
 
+### Core Features
 - **Submit reports** — authenticated, AES-GCM-256 encrypted, stored in D1
 - **Researcher dashboard** — list own submissions with status badges (detail view and comments not yet built)
-- **Admin triage panel** — role-gated (TRIAGER/ADMIN), full audit log
+- **Triage workflow** (`/triage`) — role-gated (TRIAGER/ADMIN), full audit log, status management
 - **Hall of Fame** — public recognition of accepted researchers
 - **Security policy** — responsible disclosure guidelines and in-scope targets
+
+### Admin Features (Phase 1 - Completed)
+- **User Management** (`/admin/users`) — list all Clerk users, promote/demote roles (USER ↔ TRIAGER ↔ ADMIN)
+- **Scope Management** (`/admin/scope`) — dynamically manage in-scope targets (add/edit/delete)
+- **Route Separation** — `/triage` for report workflow, `/admin` for platform management
 
 ## Getting Started
 
