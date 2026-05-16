@@ -249,7 +249,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
-                          href={`/admin/reports/${r.id}`}
+                          href={`/triage/reports/${r.id}`}
                           className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium rounded-lg transition-colors"
                         >
                           View →
