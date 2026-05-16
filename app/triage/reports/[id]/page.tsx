@@ -26,6 +26,16 @@ interface ReportDetail {
   audit_logs?: AuditEntry[];
 }
 
+interface Comment {
+  id: string;
+  reportId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: string;
+  message: string;
+  createdAt: number;
+}
+
 const SEVERITY_LEVELS = ["Critical", "High", "Medium", "Low", "Info"] as const;
 
 // Valid status transitions (mirrors backend state machine)
@@ -62,6 +72,11 @@ export default function AdminReportDetail() {
   const [triageAssignTo, setTriageAssignTo] = useState("");
   const [triageLoading, setTriageLoading] = useState<string | null>(null);
 
+  // Comments state
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+
   useEffect(() => {
     fetch(`/api/reports/${id}`)
       .then(async (r) => {
@@ -75,7 +90,45 @@ export default function AdminReportDetail() {
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
+    
+    fetchComments();
   }, [id]);
+
+  async function fetchComments() {
+    try {
+      const res = await fetch(`/api/reports/${id}/comments`);
+      if (res.ok) {
+        const data = await res.json();
+        setComments(data.comments || []);
+      }
+    } catch (err) {
+      console.error("[fetchComments]", err);
+    }
+  }
+
+  async function handleSubmitComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    setSubmittingComment(true);
+    try {
+      const res = await fetch(`/api/reports/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: newComment }),
+      });
+
+      if (!res.ok) throw new Error("Failed to post comment");
+
+      setNewComment("");
+      await fetchComments();
+    } catch (err) {
+      console.error("[handleSubmitComment]", err);
+      alert("Failed to post comment. Please try again.");
+    } finally {
+      setSubmittingComment(false);
+    }
+  }
 
   async function applyTransition(newStatus: string) {
     if (!report) return;
@@ -209,6 +262,63 @@ export default function AdminReportDetail() {
                 </ul>
               </div>
             )}
+
+            {/* Communication Section */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">💬 Communication with Researcher</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Discuss this report with the researcher. All communication is visible to both parties.
+              </p>
+
+              {/* Comments List */}
+              <div className="space-y-4 mb-6">
+                {comments.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400 text-sm">
+                    No comments yet. Start the conversation below.
+                  </div>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-gray-900 text-sm">{comment.authorName}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          comment.authorRole === 'ADMIN' ? 'bg-red-100 text-red-700' :
+                          comment.authorRole === 'TRIAGER' ? 'bg-purple-100 text-purple-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {comment.authorRole}
+                        </span>
+                        <span className="text-xs text-gray-400 ml-auto">
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.message}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* New Comment Form */}
+              <form onSubmit={handleSubmitComment} className="space-y-3">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Reply to the researcher or request additional information..."
+                  rows={4}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  disabled={submittingComment}
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={submittingComment || !newComment.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submittingComment ? "Posting..." : "Post Comment"}
+                  </button>
+                </div>
+              </form>
+            </div>
 
             {/* Audit log */}
             {report.audit_logs && report.audit_logs.length > 0 && (
