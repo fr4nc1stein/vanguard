@@ -1,5 +1,108 @@
 # Changelog
 
+## UI/UX Improvements - v2.2.0
+
+**Date:** May 15, 2026  
+**Status:** ✅ Deployed to production  
+**Version ID:** `510e6723-0d55-4100-b71b-c04d9edb8746`
+
+---
+
+### 🎨 Custom Alert System
+
+Replaced browser `alert()` and `confirm()` with custom React components for better UX.
+
+#### New Components
+- **Toast Component** (`app/components/Toast.tsx`)
+  - Success, error, and info notification types
+  - Auto-dismiss after 4 seconds
+  - Slide-in animation from right
+  - Manual close button
+  - Color-coded: green (success), red (error), blue (info)
+
+- **ConfirmDialog Component** (`app/components/ConfirmDialog.tsx`)
+  - Danger, warning, and info confirmation types
+  - Blurry backdrop effect (`backdrop-blur-sm`)
+  - Scale-in animation
+  - Custom title and message
+  - Confirm/Cancel buttons with color coding
+
+#### Scope Management Updates
+- Replaced all `alert()` calls with Toast notifications
+- Replaced `confirm()` for delete with ConfirmDialog
+- Added smooth animations to `app/globals.css`
+- Better error handling with user-friendly messages
+
+### 🌐 Dynamic Landing Page
+
+**Before:** Static hardcoded scope list  
+**After:** Fetches scopes dynamically from API
+
+#### Changes
+- Created `GET /api/scopes` public endpoint
+- Landing page fetches active scopes on load
+- Shows loading state while fetching
+- Displays scope count in stats section
+- Handles empty state gracefully
+
+#### Benefits
+- Always shows current in-scope targets
+- No need to update code when scopes change
+- Admins can manage scopes via `/admin/scope`
+- Changes reflect immediately on landing page
+
+### 🎯 Scope Management Modal Fixes
+
+#### Modal Background
+- **Before:** Solid black (`bg-black bg-opacity-50`)
+- **After:** Blurry backdrop (`bg-black/30 backdrop-blur-sm`)
+- Background now visible and blurred behind modal
+- Added `shadow-2xl` for better depth
+
+#### Input Visibility
+- **Before:** White text on white background (invisible)
+- **After:** Black text (`text-gray-900`) with gray placeholders
+- Applied to all form inputs:
+  - Text input (domain field)
+  - Textarea (description field)
+  - Select dropdowns (target type, status)
+
+### 🚫 Admin Page - Disabled Coming Soon Buttons
+
+**Issue:** Clicking "Coming Soon" buttons navigated to 404 pages
+
+**Fix:** Replaced `Link` components with disabled `button` elements
+
+#### Changes
+- Program Settings button - disabled
+- Analytics button - disabled
+- Hall of Fame button - disabled
+- Audit Logs button - disabled
+- Styled with gray background and `cursor-not-allowed`
+
+### 📊 Files Changed
+
+**New Files:**
+- `app/components/Toast.tsx` - Toast notification component
+- `app/components/ConfirmDialog.tsx` - Confirmation dialog component
+- `app/api/scopes/route.ts` - Public scopes API endpoint
+
+**Modified Files:**
+- `app/page.tsx` - Dynamic scope fetching
+- `app/admin/scope/page.tsx` - Toast/Dialog integration, modal fixes
+- `app/admin/page.tsx` - Disabled coming soon buttons
+- `app/globals.css` - Added animations (slide-in, scale-in)
+
+**Total:** 7 files changed, ~350 insertions
+
+### 🚀 Deployment
+
+**Production URL:** https://vanguard.laet4x.com  
+**Worker Size:** 8.7 MB (gzipped: 1.8 MB)  
+**New API Route:** `/api/scopes` (public, no auth)
+
+---
+
 ## Phase 1 Enterprise Admin Features - v2.1.0
 
 **Date:** May 15, 2026  
