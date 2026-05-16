@@ -83,8 +83,8 @@ export type PresignRequestInput = z.infer<typeof PresignRequestSchema>;
 // ── Pagination Schema ─────────────────────────────────────────────────────────
 
 export const PaginationSchema = z.object({
-  page:     z.coerce.number().int().min(1).default(1),
-  per_page: z.coerce.number().int().min(1).max(50).default(20),
+  page:     z.coerce.number().int().min(1).optional(),
+  per_page: z.coerce.number().int().min(1).max(50).optional(),
   status:   z.enum(VALID_STATUSES).optional(),
   severity: z.enum(SEVERITIES).optional(),
   target:   z.string().max(200).optional(),

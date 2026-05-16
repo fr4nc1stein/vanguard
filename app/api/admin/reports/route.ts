@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid query params' }, { status: 400 });
     }
-    const { page, per_page, status, severity, target, q } = parsed.data;
+    const { page = 1, per_page = 20, status, severity, target, q } = parsed.data;
 
     const db = getDb(getCfEnv().DB);
 
