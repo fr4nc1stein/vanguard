@@ -6,13 +6,15 @@ import { NextResponse } from 'next/server';
 // treat this file as a Page, which breaks the build.
 
 const isTriageRoute    = createRouteMatcher(['/triage(.*)']);
-const isAdminRoute     = createRouteMatcher(['/admin(.*)', '/api/admin(.*)']);
+const isAdminPageRoute = createRouteMatcher(['/admin(.*)']); // Page routes only, not API
 const isDashboardRoute = createRouteMatcher(['/dashboard(.*)']);
 const isSubmitRoute    = createRouteMatcher(['/submit(.*)']);
-const isApiReportRoute = createRouteMatcher(['/api/reports(.*)']);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (isTriageRoute(request)) {
+  // Skip middleware role checks for API routes - they handle auth via requireRole()
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
+  
+  if (isTriageRoute(request) && !isApiRoute) {
     // Triage route - TRIAGER or ADMIN
     const { userId } = await auth.protect();
     const client = await clerkClient();
@@ -22,8 +24,8 @@ export default clerkMiddleware(async (auth, request) => {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
-  if (isAdminRoute(request)) {
-    // Admin route - ADMIN only (except API routes which have their own checks)
+  if (isAdminPageRoute(request) && !isApiRoute) {
+    // Admin page route - ADMIN only
     const { userId } = await auth.protect();
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
