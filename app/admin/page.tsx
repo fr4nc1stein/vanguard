@@ -88,12 +88,12 @@ export default function AdminManagement() {
             <p className="text-sm text-gray-600 mb-4">
               View platform metrics, trend analysis, and export compliance reports.
             </p>
-            <button
-              disabled
-              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
+            <Link
+              href="/admin/analytics"
+              className="inline-block px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors"
             >
-              Coming Soon
-            </button>
+              View Analytics →
+            </Link>
           </div>
 
           {/* Hall of Fame */}
