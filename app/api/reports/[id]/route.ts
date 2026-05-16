@@ -37,10 +37,7 @@ export async function GET(
     if (isOwner || isStaff) {
       const rawBody = await decryptText(report.bodyEncrypted, report.bodyIv);
       decryptedBody = JSON.parse(rawBody);
-      // Only audit staff decryption (not owner viewing their own report)
-      if (isStaff && !isOwner) {
-        await logAudit({ db, reportId: report.id, actorId: userId, action: 'report_decrypted' });
-      }
+      // No audit logging for decryption - it's automatic when viewing reports
     }
 
     // Resolve PoC file keys (stored as JSON array, no R2 URLs)
