@@ -13,7 +13,7 @@ A HackerOne-style vulnerability disclosure platform. Security researchers sign i
 | [docs/blueprint.md](docs/blueprint.md) | Architecture, data model, API surface, security design |
 | [docs/agent.md](docs/agent.md) | Developer persona — stack rules, failure modes, code patterns |
 | [ISSUES.md](ISSUES.md) | Known issues, edge runtime pitfalls, debugging tips |
-| [docs/ENTERPRISE_ADMIN_FEATURES.md](docs/ENTERPRISE_ADMIN_FEATURES.md) | Enterprise admin features roadmap and specifications |
+| [docs/ADMIN_FEATURES.md](docs/ADMIN_FEATURES.md) | Admin features roadmap and specifications |
 
 ## Tech Stack
 
