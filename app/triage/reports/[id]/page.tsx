@@ -146,7 +146,7 @@ export default function AdminReportDetail() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link href="/admin" className="hover:text-blue-600 transition-colors">Triage</Link>
+          <Link href="/triage" className="hover:text-blue-600 transition-colors">Triage</Link>
           <span>›</span>
           <span className="font-mono text-gray-700">{report.ref_id}</span>
         </div>
@@ -314,7 +314,7 @@ export default function AdminReportDetail() {
             </div>
 
             <Link
-              href="/admin"
+              href="/triage"
               className="block text-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
             >
               ← Back to all reports

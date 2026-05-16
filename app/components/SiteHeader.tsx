@@ -61,14 +61,26 @@ export default function SiteHeader() {
 
               {(role === "TRIAGER" || role === "ADMIN") && (
                 <Link
-                  href="/admin"
+                  href="/triage"
                   className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    pathname.startsWith("/admin")
+                    pathname.startsWith("/triage")
                       ? "text-purple-700 bg-purple-50"
                       : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
                   }`}
                 >
                   🛡️ Triage
+                </Link>
+              )}
+              {role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    pathname.startsWith("/admin")
+                      ? "text-orange-700 bg-orange-50"
+                      : "text-gray-600 hover:text-orange-700 hover:bg-orange-50"
+                  }`}
+                >
+                  ⚙️ Admin
                 </Link>
               )}
             </>
@@ -136,11 +148,20 @@ export default function SiteHeader() {
               </Link>
               {(role === "TRIAGER" || role === "ADMIN") && (
                 <Link
-                  href="/admin"
+                  href="/triage"
                   onClick={() => setMobileOpen(false)}
                   className="block px-3 py-2 text-sm font-medium rounded-lg text-gray-600 hover:bg-purple-50"
                 >
                   🛡️ Triage
+                </Link>
+              )}
+              {role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-3 py-2 text-sm font-medium rounded-lg text-gray-600 hover:bg-orange-50"
+                >
+                  ⚙️ Admin
                 </Link>
               )}
             </>

@@ -1,110 +1,10 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React from "react";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
-import ReportStatusBadge from "../components/ReportStatusBadge";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Stats {
-  total: number;
-  byStatus: Record<string, number>;
-  bySeverity: Record<string, number>;
-}
-
-interface ReportRow {
-  id: string;
-  refId: string;
-  target: string;
-  vulnType: string;
-  severity: string;
-  title: string;
-  status: string;
-  assignedTo: string | null;
-  submittedAt: number;
-  updatedAt: number;
-}
-
-interface AdminReportsResponse {
-  reports: ReportRow[];
-  pagination: { total: number; page: number; per_page: number; pages: number };
-}
-
-const STATUSES = ["all", "new", "triaged", "accepted", "fixed", "rejected", "informational"] as const;
-const SEVERITIES = ["all", "critical", "high", "medium", "low", "informational"] as const;
-
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: "text-red-700 bg-red-50 border-red-200",
-  high:     "text-orange-700 bg-orange-50 border-orange-200",
-  medium:   "text-yellow-700 bg-yellow-50 border-yellow-200",
-  low:      "text-blue-700 bg-blue-50 border-blue-200",
-  informational: "text-gray-600 bg-gray-50 border-gray-200",
-};
-
-function StatCard({ label, value, sub }: { label: string; value: number; sub?: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">{label}</p>
-      <p className="text-3xl font-bold text-gray-900">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [reports, setReports] = useState<ReportRow[]>([]);
-  const [meta, setMeta] = useState({ total: 0, page: 1, per_page: 20, pages: 1 });
-  const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterSeverity, setFilterSeverity] = useState<string>("all");
-  const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [page, setPage] = useState(1);
-
-  const fetchReports = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ page: String(page), per_page: "20" });
-    if (filterStatus !== "all")   params.set("status", filterStatus);
-    if (filterSeverity !== "all") params.set("severity", filterSeverity);
-    if (search)                   params.set("q", search);
-
-    try {
-      const res = await fetch(`/api/admin/reports?${params}`);
-      if (!res.ok) throw new Error("Unauthorized");
-      const json: AdminReportsResponse = await res.json();
-      setReports(json.reports);
-      setMeta(json.pagination);
-    } catch (err) {
-      console.error('[fetchReports] Error:', err);
-      setReports([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filterStatus, filterSeverity, search]);
-
-  useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.json())
-      .then(setStats)
-      .catch(() => null);
-  }, []);
-
-  useEffect(() => { fetchReports(); }, [fetchReports]);
-
-  function applySearch(e: React.FormEvent) {
-    e.preventDefault();
-    setSearch(searchInput);
-    setPage(1);
-  }
-
-  function changeFilter(type: "status" | "severity", value: string) {
-    if (type === "status")   { setFilterStatus(value);   }
-    if (type === "severity") { setFilterSeverity(value); }
-    setPage(1);
-  }
-
+export default function AdminManagement() {
   return (
     <main className="min-h-screen bg-gray-50">
       <SiteHeader />
@@ -113,179 +13,152 @@ export default function AdminDashboard() {
         {/* Page title */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">🛡️ Triage Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Security report triage and management</p>
+            <h1 className="text-2xl font-bold text-gray-900">⚙️ Admin Management</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Platform configuration and user management</p>
           </div>
         </div>
 
-        {/* Stats cards */}
-        {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <StatCard label="Total" value={stats.total} />
-            <StatCard label="New"      value={stats.byStatus?.new ?? 0}      sub="awaiting triage" />
-            <StatCard label="Triaged"  value={stats.byStatus?.triaged ?? 0}  />
-            <StatCard label="Accepted" value={stats.byStatus?.accepted ?? 0} />
-            <StatCard label="Fixed"    value={stats.byStatus?.fixed ?? 0}    />
-            <StatCard label="Critical" value={stats.bySeverity?.critical ?? 0} sub="★ high priority" />
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-          {/* Status pills */}
-          <div className="flex flex-wrap gap-2">
-            {STATUSES.map((s) => (
-              <button
-                key={s}
-                onClick={() => changeFilter("status", s)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition-colors ${
-                  filterStatus === s
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {s} {s !== "all" && stats ? `(${stats.byStatus?.[s] ?? 0})` : ""}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-3 items-center">
-            {/* Severity filter */}
-            <select
-              value={filterSeverity}
-              onChange={(e) => changeFilter("severity", e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {SEVERITIES.map((s) => (
-                <option key={s} value={s}>
-                  {s === "all" ? "All Severities" : s.charAt(0).toUpperCase() + s.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            {/* Search */}
-            <form onSubmit={applySearch} className="flex gap-2 flex-1 min-w-[200px]">
-              <input
-                type="text"
-                placeholder="Search by title, target, ref ID…"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Search
-              </button>
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => { setSearch(""); setSearchInput(""); setPage(1); }}
-                  className="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-            </form>
-          </div>
-        </div>
-
-        {/* Reports table */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <svg className="w-6 h-6 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            </div>
-          ) : reports.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <p className="text-4xl mb-3">🔍</p>
-              <p className="text-sm font-medium">No reports found</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Ref</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Target</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Severity</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {reports.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500 whitespace-nowrap">{r.refId}</td>
-                      <td className="px-4 py-3 max-w-xs">
-                        <p className="font-medium text-gray-900 truncate">{r.title}</p>
-                        <p className="text-xs text-gray-400 truncate">{r.vulnType}</p>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{r.target}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold capitalize ${
-                            SEVERITY_COLORS[r.severity.toLowerCase()] ?? "text-gray-600 bg-gray-50 border-gray-200"
-                          }`}
-                        >
-                          {r.severity}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <ReportStatusBadge status={r.status as never} />
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">
-                        {r.assignedTo ?? <span className="text-gray-300">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
-                        {new Date(r.submittedAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/admin/reports/${r.id}`}
-                          className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium rounded-lg transition-colors"
-                        >
-                          View →
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {meta.pages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 text-sm text-gray-500">
-              <span>
-                Showing {(meta.page - 1) * meta.per_page + 1}–{Math.min(meta.page * meta.per_page, meta.total)} of {meta.total}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={meta.page === 1}
-                  className="px-3 py-1 border border-gray-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors"
-                >
-                  ← Prev
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(meta.pages, p + 1))}
-                  disabled={meta.page === meta.pages}
-                  className="px-3 py-1 border border-gray-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors"
-                >
-                  Next →
-                </button>
+        {/* Feature Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* User Management */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">
+                👥
               </div>
+              <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
             </div>
-          )}
+            <p className="text-sm text-gray-600 mb-4">
+              Manage platform users, assign roles (TRIAGER, ADMIN), and view user activity.
+            </p>
+            <Link
+              href="/admin/users"
+              className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Coming Soon
+            </Link>
+          </div>
+
+          {/* Scope Management */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-xl">
+                🎯
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Scope Management</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Define in-scope targets, manage allowed vulnerability types, and set exclusions.
+            </p>
+            <Link
+              href="/admin/scope"
+              className="inline-block px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Coming Soon
+            </Link>
+          </div>
+
+          {/* Program Settings */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-xl">
+                ⚙️
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Program Settings</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Configure SLAs, notification settings, bounty ranges, and submission rules.
+            </p>
+            <Link
+              href="/admin/settings"
+              className="inline-block px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Coming Soon
+            </Link>
+          </div>
+
+          {/* Analytics */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-xl">
+                📊
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Analytics</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              View platform metrics, trend analysis, and export compliance reports.
+            </p>
+            <Link
+              href="/admin/analytics"
+              className="inline-block px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Coming Soon
+            </Link>
+          </div>
+
+          {/* Hall of Fame */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center text-xl">
+                🏆
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Hall of Fame</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Manage researcher profiles, recognition tiers, and bounty tracking.
+            </p>
+            <Link
+              href="/admin/hall-of-fame"
+              className="inline-block px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors"
+            >
+              Coming Soon
+            </Link>
+          </div>
+
+          {/* Audit Logs */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-xl">
+                📋
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Audit Logs</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              View comprehensive platform activity logs and compliance reports.
+            </p>
+            <Link
+              href="/admin/audit-logs"
+              className="inline-block px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Coming Soon
+            </Link>
+          </div>
+        </div>
+
+        {/* Quick Links */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <h3 className="font-semibold text-gray-900 mb-3">📚 Documentation</h3>
+          <div className="space-y-2 text-sm">
+            <p className="text-gray-700">
+              For detailed information about enterprise admin features, see{" "}
+              <code className="bg-white px-2 py-0.5 rounded text-blue-700 font-mono text-xs">
+                docs/ENTERPRISE_ADMIN_FEATURES.md
+              </code>
+            </p>
+            <p className="text-gray-600">
+              Features are being implemented in phases. Check the roadmap for timeline and priorities.
+            </p>
+          </div>
+        </div>
+
+        {/* Back to Triage */}
+        <div className="text-center">
+          <Link
+            href="/triage"
+            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+          >
+            ← Back to Triage Dashboard
+          </Link>
         </div>
       </div>
 
