@@ -1,5 +1,229 @@
 # Changelog
 
+## Analytics Dashboard & Communication System - v2.3.0
+
+**Date:** May 15, 2026  
+**Status:** ✅ Deployed to production  
+**Version ID:** `2717ec62-d67d-4f2b-b989-3d756c8961e4`
+
+---
+
+### 📊 Analytics Dashboard (Phase 2 Feature #1)
+
+**Route:** `/admin/analytics`  
+**Access:** TRIAGER and ADMIN roles
+
+#### Features Implemented
+- **Summary Statistics Cards**
+  - Total reports (all time)
+  - Recent reports (configurable: 7/30/90/365 days)
+  - Average response time (hours for resolved reports)
+  - Resolved count (accepted/duplicate/resolved)
+
+- **Data Visualizations**
+  - Severity distribution (progress bars with percentages)
+  - Status distribution (progress bars with percentages)
+  - Reports over time (bar chart showing daily submissions)
+  - Top 5 targets by report count
+  - Top 10 reporters (ranked with Clerk user names)
+
+- **Export Functionality**
+  - Export to CSV for compliance reports
+  - Includes all metrics and distributions
+  - Date-stamped filename
+
+- **Date Range Selector**
+  - 7, 30, 90, or 365 days
+  - Real-time data refresh on change
+
+#### API Endpoint
+- `GET /api/admin/analytics?days={N}`
+- Calculates metrics from existing reports table
+- No additional database tables needed
+- Groups reports by clerkUserId for accurate reporter counts
+- Fetches Clerk user names for top reporters
+
+#### Bug Fixes
+- Fixed top reporters to show Clerk user names instead of "Anonymous"
+- Groups by clerkUserId to prevent duplicate counting
+- Fetches full name (firstName + lastName) or username from Clerk
+
+---
+
+### 💬 Two-Way Communication System
+
+Complete researcher-triager communication system with comments.
+
+#### Database Changes
+- **New Table:** `comments`
+  - Fields: id, report_id, author_id, author_name, author_role, message, created_at
+  - Indexes: report_id, created_at
+  - Migration: `004_create_comments_table.sql`
+  - Applied to local and production D1
+
+#### API Endpoints
+- `GET /api/reports/[id]/comments` - Fetch all comments for a report
+- `POST /api/reports/[id]/comments` - Add a comment to a report
+- Access control: Report owner OR TRIAGER/ADMIN
+- Fetches author names from Clerk
+- Stores author role for badge display
+
+#### Researcher Dashboard (`/dashboard`)
+- **Added View Button**
+  - Each report now has "View →" button
+  - Links to `/dashboard/reports/[id]`
+
+- **Report Detail Page** (`/dashboard/reports/[id]`)
+  - Full report information display
+  - Reference ID, status, severity badges
+  - Complete description with markdown rendering
+  - CVSS vector display
+  - Communication section with comment thread
+  - Post new comments
+  - Role-based badges (USER/TRIAGER/ADMIN)
+  - Timestamps for all comments
+
+#### Triage Dashboard (`/triage/reports/[id]`)
+- **Communication Section**
+  - Placed before Activity Log
+  - View all researcher comments
+  - Reply to researchers
+  - Request additional information
+  - Provide updates and feedback
+  - Same role-based badges and timestamps
+
+#### Access Control
+- **Researchers (USER):** Can view ONLY their own reports and comments
+- **TRIAGER/ADMIN:** Can view ALL reports and comments
+- **Both:** Can post comments
+- **Audit:** Staff decryption is audited, owner viewing is not
+
+#### Bug Fixes Discovered & Fixed
+1. **Researcher Report Access Issue**
+   - **Problem:** Researchers got "Report not found" when viewing their own reports
+   - **Root Cause:** API only decrypted body for staff, not report owners
+   - **Fix:** Allow report owners to decrypt their own reports
+   - **Fix:** Corrected API response mapping (data.data vs data.report)
+   - **Fix:** Converted snake_case API fields to camelCase in frontend
+
+2. **Next.js 16 Async Params**
+   - **Problem:** TypeScript error with params in route handlers
+   - **Root Cause:** Next.js 16 changed params to Promise type
+   - **Fix:** Updated all route handlers to await params
+
+---
+
+### 📝 Markdown Rendering Support
+
+Added proper markdown rendering for report descriptions.
+
+#### Implementation
+- **Installed:** `react-markdown` package
+- **Applied to:**
+  - Researcher report detail page (`/dashboard/reports/[id]`)
+  - Triage report detail page (`/triage/reports/[id]`)
+
+#### Markdown Features Supported
+- Headings (##, ###)
+- Bold and italic text
+- Numbered and bulleted lists
+- Code blocks
+- Links
+- Blockquotes
+- All standard markdown syntax
+
+#### Custom Styling
+- **H2 Headings:** Bold, larger text, proper spacing (mt-6, mb-3)
+- **H3 Headings:** Semi-bold, smaller text (mt-4, mb-2)
+- **Paragraphs & Lists:** Consistent spacing (mb-3)
+- **Typography:** Uses Tailwind prose classes
+
+#### Bug Fix
+- **Problem:** Headings had no spacing and weren't bold
+- **Fix:** Added custom Tailwind CSS for proper heading formatting
+- **Result:** Professional, readable report presentation
+
+---
+
+### 🔧 Technical Improvements
+
+#### Dependencies Added
+- `react-markdown` - Markdown rendering
+- `esbuild` - Build tool peer dependency
+
+#### Database Migrations
+- `004_create_comments_table.sql` - Comments table with indexes
+
+#### Files Created (11 new files)
+- `app/admin/analytics/page.tsx` - Analytics dashboard UI
+- `app/api/admin/analytics/route.ts` - Analytics API endpoint
+- `app/dashboard/reports/[id]/page.tsx` - Researcher report detail
+- `app/api/reports/[id]/comments/route.ts` - Comments API
+- `app/components/Toast.tsx` - Toast notification component
+- `app/components/ConfirmDialog.tsx` - Confirmation dialog component
+- `migrations/004_create_comments_table.sql` - Database migration
+
+#### Files Modified (8 files)
+- `app/dashboard/page.tsx` - Added View button
+- `app/triage/reports/[id]/page.tsx` - Added comments section, markdown rendering
+- `app/admin/page.tsx` - Enabled Analytics button, disabled Coming Soon buttons
+- `app/api/reports/[id]/route.ts` - Allow owners to decrypt their reports
+- `lib/db/schema.ts` - Added comments table and types
+- `app/globals.css` - Added toast/dialog animations
+
+#### Total Changes
+- **19 files changed**
+- **~1,500+ lines added**
+- **3 new API endpoints**
+- **1 new database table**
+
+---
+
+### 🎯 Phase 2 Progress
+
+✅ **Analytics Dashboard** - COMPLETED  
+⏳ **Program Settings** - Next  
+⏳ **Hall of Fame Management** - After that
+
+---
+
+### 🐛 Issues Discovered & Solutions
+
+1. **Top Reporters Showing "Anonymous"**
+   - Grouped by handle instead of clerkUserId
+   - Fixed by grouping by clerkUserId and fetching Clerk names
+
+2. **Researcher Cannot View Own Reports**
+   - API only decrypted for staff
+   - Fixed by allowing owners to decrypt their own data
+
+3. **API Response Format Mismatch**
+   - Frontend expected wrong response structure
+   - Fixed by mapping data.data correctly
+
+4. **Next.js 16 Breaking Change**
+   - Params changed to Promise type
+   - Fixed by awaiting params in all route handlers
+
+5. **Markdown Not Rendering**
+   - Missing react-markdown library
+   - Fixed by installing and implementing ReactMarkdown
+
+6. **Markdown Headings No Spacing**
+   - Default prose styles insufficient
+   - Fixed with custom Tailwind CSS for headings
+
+---
+
+### 📚 Documentation Updates
+
+- Updated CHANGELOG.md with v2.3.0 entry
+- All features documented with implementation details
+- Bug fixes and solutions documented
+- API endpoints and access control documented
+
+---
+
 ## UI/UX Improvements - v2.2.0
 
 **Date:** May 15, 2026  
