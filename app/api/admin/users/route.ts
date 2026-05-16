@@ -7,8 +7,6 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { requireRole } from '@/lib/auth';
 import { z } from 'zod';
 
-export const runtime = 'edge';
-
 // GET - List all users
 export async function GET(_request: NextRequest) {
   try {
