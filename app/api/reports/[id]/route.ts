@@ -8,7 +8,7 @@ import { reports } from '@/lib/db/schema';
 import { decryptText } from '@/lib/crypto';
 import { auth } from '@clerk/nextjs/server';
 import { getSessionRole, hasRole } from '@/lib/auth';
-import { logAudit } from '@/lib/audit';
+import { logAudit, getAuditLog } from '@/lib/audit';
 
 export async function GET(
   request: NextRequest,
@@ -42,25 +42,40 @@ export async function GET(
 
     // Resolve PoC file keys (stored as JSON array, no R2 URLs)
     const pocKeys: string[] = JSON.parse(report.pocFiles || '[]');
-    const pocUrls = pocKeys.map(key => ({ key, url: null }));
+
+    // Get audit logs for staff
+    const auditLogs = isStaff ? await getAuditLog(db, report.id) : [];
+
+    // Format body for display
+    const bodyText = decryptedBody 
+      ? `${decryptedBody.description}\n\n## Steps to Reproduce\n${decryptedBody.stepsToReproduce}\n\n## Impact\n${decryptedBody.impact}${decryptedBody.evidence ? `\n\n## Evidence\n${decryptedBody.evidence}` : ''}`
+      : null;
 
     return NextResponse.json({
-      report: {
+      data: {
         id:          report.id,
-        refId:       report.refId,
+        ref_id:      report.refId,
         handle:      report.handle,
         target:      report.target,
-        vulnType:    report.vulnType,
+        vuln_type:   report.vulnType,
         severity:    report.severity,
         title:       report.title,
+        body:        bodyText,
         cvss:        report.cvss,
         status:      report.status,
-        assignedTo:  report.assignedTo,
-        submittedAt: report.submittedAt,
-        updatedAt:   report.updatedAt,
-        pocFiles:    pocUrls,
-        // Only for staff
-        ...(isStaff && decryptedBody ? { body: decryptedBody } : {}),
+        assigned_to: report.assignedTo,
+        poc_files:   pocKeys,
+        created_at:  new Date(report.submittedAt).toISOString(),
+        updated_at:  new Date(report.updatedAt).toISOString(),
+        audit_logs:  auditLogs.map(log => ({
+          id:         log.id,
+          action:     log.action,
+          actor_id:   log.actorId,
+          actor_email: log.actorEmail,
+          old_value:  log.oldValue,
+          new_value:  log.newValue,
+          timestamp:  new Date(log.timestamp).toISOString(),
+        })),
       },
     });
   } catch (err) {
