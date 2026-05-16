@@ -42,8 +42,8 @@ export const scopes = sqliteTable('scopes', {
   id:          text('id').primaryKey(),
   domain:      text('domain').notNull(),
   description: text('description'),
-  targetType:  text('target_type').notNull().default('web_app'), // 'web_app', 'api', 'mobile', 'infrastructure'
-  status:      text('status').notNull().default('active'), // 'active', 'deprecated', 'out_of_scope'
+  targetType:  text('target_type').notNull(), // 'web_app', 'api', 'mobile', 'infrastructure'
+  status:      text('status').notNull(), // 'active', 'deprecated', 'out_of_scope'
   createdBy:   text('created_by').notNull(), // Clerk user ID
   createdAt:   integer('created_at').notNull(),
   updatedAt:   integer('updated_at').notNull(),
