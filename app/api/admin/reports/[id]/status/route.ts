@@ -25,7 +25,7 @@ const ALLOWED_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
   accepted:      ['fixed', 'rejected'],
   rejected:      ['accepted', 'triaged'],
   fixed:         [],
-  informational: [],
+  informational: ['triaged', 'new'], // Allow reopening informational reports
 };
 
 export async function PATCH(

@@ -35,7 +35,7 @@ const NEXT_STATUSES: Record<string, string[]> = {
   accepted:      ["fixed", "rejected"],
   rejected:      ["accepted", "triaged"],
   fixed:         [],
-  informational: [],
+  informational: ["triaged", "new"], // Allow reopening informational reports
 };
 
 const TRANSITION_LABELS: Record<string, { label: string; cls: string }> = {
@@ -44,6 +44,7 @@ const TRANSITION_LABELS: Record<string, { label: string; cls: string }> = {
   rejected:      { label: "Reject Report",      cls: "bg-red-600 hover:bg-red-700" },
   informational: { label: "Mark Informational", cls: "bg-gray-500 hover:bg-gray-600" },
   fixed:         { label: "Mark Fixed ✓",       cls: "bg-teal-600 hover:bg-teal-700" },
+  new:           { label: "Reopen as New",      cls: "bg-blue-600 hover:bg-blue-700" },
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
