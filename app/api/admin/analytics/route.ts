@@ -6,6 +6,7 @@ import { getDb, getCfEnv } from '@/lib/db';
 import { reports } from '@/lib/db/schema';
 import { requireRole } from '@/lib/auth';
 import { sql, eq, and, gte } from 'drizzle-orm';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,16 +69,40 @@ export async function GET(request: NextRequest) {
     }
 
     // Top reporters (by number of submissions)
+    // Group by clerkUserId to get accurate counts per user
     const reporterCounts = allReports.reduce((acc, r) => {
-      const handle = r.handle || 'Anonymous';
-      acc[handle] = (acc[handle] || 0) + 1;
+      const userId = r.clerkUserId || 'anonymous';
+      if (!acc[userId]) {
+        acc[userId] = { count: 0, handle: r.handle || 'Anonymous' };
+      }
+      acc[userId].count += 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, { count: number; handle: string }>);
 
-    const topReporters = Object.entries(reporterCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([handle, count]) => ({ handle, count }));
+    // Get top 10 reporter user IDs
+    const topReporterIds = Object.entries(reporterCounts)
+      .sort(([, a], [, b]) => b.count - a.count)
+      .slice(0, 10);
+
+    // Fetch Clerk user names for authenticated reporters
+    const client = await clerkClient();
+    const topReporters = await Promise.all(
+      topReporterIds.map(async ([userId, data]) => {
+        if (userId === 'anonymous') {
+          return { handle: 'Anonymous', count: data.count };
+        }
+        try {
+          const user = await client.users.getUser(userId);
+          const name = user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}`
+            : user.username || user.emailAddresses[0]?.emailAddress || data.handle;
+          return { handle: name, count: data.count };
+        } catch (err) {
+          // If user not found in Clerk, use handle from report
+          return { handle: data.handle, count: data.count };
+        }
+      })
+    );
 
     // Average response time (for resolved reports)
     const resolvedReports = allReports.filter(r => 
