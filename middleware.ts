@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 // NOTE: Do NOT add `export const runtime = 'edge'` here.
@@ -13,10 +13,12 @@ const isApiReportRoute = createRouteMatcher(['/api/reports(.*)']);
 export default clerkMiddleware(async (auth, request) => {
   if (isAdminRoute(request)) {
     // Must be authenticated
-    await auth.protect();
-    // Must have ADMIN or TRIAGER role stored in publicMetadata
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.publicMetadata as { role?: string } | undefined)?.role;
+    const { userId } = await auth.protect();
+    // Fetch live user data from Clerk — sessionClaims JWT does not include
+    // publicMetadata by default, so we read it directly from the Clerk API.
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const role = (user.publicMetadata as { role?: string })?.role;
     if (role !== 'ADMIN' && role !== 'TRIAGER') {
       return NextResponse.redirect(new URL('/', request.url));
     }

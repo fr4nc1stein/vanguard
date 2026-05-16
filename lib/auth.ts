@@ -28,10 +28,10 @@ export async function getSessionRole(): Promise<UserRole> {
   const metadata = sessionClaims?.publicMetadata as { role?: string } | undefined;
   const role = metadata?.role;
   
-  // Debug logging
-  console.log('[getSessionRole] sessionClaims:', JSON.stringify(sessionClaims, null, 2));
-  console.log('[getSessionRole] publicMetadata:', JSON.stringify(metadata, null, 2));
-  console.log('[getSessionRole] extracted role:', role);
+  // Debug logging (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[getSessionRole] extracted role:', role);
+  }
   
   if (role === 'ADMIN' || role === 'TRIAGER' || role === 'USER') return role;
   

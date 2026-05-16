@@ -123,6 +123,8 @@ Roles are stored in Clerk's `publicMetadata`. Valid values:
 | `TRIAGER` | Admin panel — view, triage, comment on reports |
 | `ADMIN` | Full admin — all TRIAGER actions + status changes |
 
+> **Security note:** `publicMetadata` is **server-side only**. It can only be written via the Clerk Dashboard or your backend (using the secret key). Users cannot read or modify their own `publicMetadata` from the client — making it safe to use for role enforcement.
+
 **To assign a role:**
 1. Go to **Clerk Dashboard → Users**
 2. Find the user → click their name
@@ -225,9 +227,13 @@ To route `vanguard.laet4x.com` to the Worker:
 - **Cause:** Clerk redirect URLs not configured, or app URL not in allowed origins.
 - **Fix:** Set After sign-in URL in Clerk dashboard. Add Worker URL to allowed redirect origins.
 
+### Admin link visible but clicking it redirects back to `/`
+- **Cause:** Clerk's session JWT does not include `publicMetadata` by default. The header uses `useUser()` (live Clerk API) so it shows the link correctly, but middleware was reading `sessionClaims?.publicMetadata` from the JWT — which is always `undefined` — so the role check always failed.
+- **Fix:** Middleware now uses `clerkClient().users.getUser(userId)` to read live `publicMetadata` directly from the Clerk API, bypassing the JWT entirely.
+
 ### Admin accessible to all signed-in users
 - **Cause:** Middleware only checked `auth.protect()` (any authenticated user), not role.
-- **Fix:** Middleware now reads `publicMetadata.role` and redirects to `/` if not `ADMIN` or `TRIAGER`. New users have no role by default — admin is inaccessible until explicitly granted.
+- **Fix:** Middleware now reads `publicMetadata.role` via `clerkClient` and redirects to `/` if not `ADMIN` or `TRIAGER`. New users have no role by default — admin is inaccessible until explicitly granted.
 
 ### Google OAuth `Error 400: invalid_request — Missing required parameter: client_id`
 - **Cause:** Google OAuth credentials not configured in Clerk Social Connections.
