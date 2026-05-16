@@ -140,9 +140,9 @@ export default function AdminManagement() {
           <h3 className="font-semibold text-gray-900 mb-3">📚 Documentation</h3>
           <div className="space-y-2 text-sm">
             <p className="text-gray-700">
-              For detailed information about enterprise admin features, see{" "}
+              For detailed information about admin features, see{" "}
               <code className="bg-white px-2 py-0.5 rounded text-blue-700 font-mono text-xs">
-                docs/ENTERPRISE_ADMIN_FEATURES.md
+                docs/ADMIN_FEATURES.md
               </code>
             </p>
             <p className="text-gray-600">
