@@ -1,4 +1,113 @@
-# Security & UX Improvements - v2.0.0
+# Changelog
+
+## Phase 1 Enterprise Admin Features - v2.1.0
+
+**Date:** May 15, 2026  
+**Status:** ✅ Deployed to production  
+**Version ID:** `92bf7721-83a2-420a-82e1-db2d3965828c`
+
+---
+
+### 🎯 New Features
+
+#### 1. Route Restructure
+- **Renamed `/admin` → `/triage`** for report triage workflow
+- **Created `/admin`** for platform management features
+- **Updated navigation** to show separate Triage and Admin buttons
+- **Fixed all internal links** and breadcrumbs
+
+#### 2. User Management (`/admin/users`)
+- List all Clerk users with pagination
+- Display user details: name, email, role, join date, last sign-in
+- Role promotion/demotion:
+  - USER → TRIAGER
+  - TRIAGER → ADMIN
+  - ADMIN → TRIAGER
+  - TRIAGER → USER
+- User statistics dashboard (Total, Admins, Triagers, Researchers)
+- Real-time role updates via Clerk API
+
+#### 3. Scope Management (`/admin/scope`)
+- CRUD operations for in-scope targets
+- Target fields: domain, description, type, status
+- Target types: Web App, API, Mobile, Infrastructure
+- Status options: Active, Deprecated, Out of Scope
+- Statistics dashboard
+- Modal-based add/edit interface
+- Seeded with 2 initial targets (vanguard.laet4x.com, laet4x.com)
+
+### 🔧 Technical Changes
+
+#### Database
+- Added `scopes` table to schema
+- Created migration: `003_create_scopes_table.sql`
+- Executed migration on local and production D1
+
+#### API Endpoints
+- `GET /api/admin/users` - List all Clerk users
+- `PATCH /api/admin/users` - Update user role
+- `GET /api/admin/scopes` - List all scopes
+- `POST /api/admin/scopes` - Create new scope
+- `PATCH /api/admin/scopes/[id]` - Update scope
+- `DELETE /api/admin/scopes/[id]` - Delete scope
+
+#### Bug Fixes
+- **Fixed:** Middleware blocking API routes - excluded `/api/*` from middleware role checks
+- **Fixed:** Zod `.default()` edge runtime errors - removed all `.default()` usage
+- **Fixed:** `export const runtime = 'edge'` causing issues - removed from API routes
+- **Fixed:** Drizzle schema `.default()` causing errors - removed from scopes table
+- **Fixed:** Report detail 404 errors - updated links from `/admin/reports` to `/triage/reports`
+
+### 📊 Files Changed
+
+**New Files:**
+- `app/admin/page.tsx` - Admin management dashboard
+- `app/admin/users/page.tsx` - User management UI
+- `app/admin/scope/page.tsx` - Scope management UI
+- `app/api/admin/users/route.ts` - User management API
+- `app/api/admin/scopes/route.ts` - Scope management API
+- `app/api/admin/scopes/[id]/route.ts` - Scope update/delete API
+- `migrations/003_create_scopes_table.sql` - Database migration
+- `ISSUES.md` - Known issues and solutions documentation
+- `docs/ENTERPRISE_ADMIN_FEATURES.md` - Feature specifications
+
+**Modified Files:**
+- `app/components/SiteHeader.tsx` - Navigation updates
+- `app/triage/page.tsx` - Report listing (formerly admin)
+- `app/triage/reports/[id]/page.tsx` - Report detail (formerly admin)
+- `middleware.ts` - Exclude API routes from role checks
+- `lib/db/schema.ts` - Added scopes table, removed `.default()`
+- `lib/validation.ts` - Removed `.default()` from PaginationSchema
+- `app/api/admin/reports/route.ts` - Handle pagination defaults in code
+- `app/api/reports/route.ts` - Updated Discord webhook URL
+
+**Total:** 18 files changed, ~1,200 insertions
+
+### 🐛 Known Issues & Solutions
+
+See [ISSUES.md](ISSUES.md) for detailed documentation of:
+- Zod `.default()` incompatibility with edge runtime
+- `export const runtime = 'edge'` issues
+- Middleware blocking API routes
+- Route restructuring pitfalls
+
+### 🚀 Deployment
+
+**Production URL:** https://vanguard.laet4x.com  
+**Worker Size:** 8.7 MB (gzipped: 1.8 MB)  
+**Database:** D1 with 3 tables (reports, audit_logs, scopes)
+
+### 📝 Next Steps (Phase 2)
+
+- Program Settings - SLA configuration, notifications
+- Analytics Dashboard - Metrics, trends, exports
+- Hall of Fame Management - Dynamic researcher profiles
+- Template Management - Email and response templates
+- Integration Management - Additional integrations
+
+---
+
+## Security & UX Improvements - v2.0.0
 
 **Branch:** `security/fix-critical-vulnerabilities`  
 **Status:** ✅ Ready to merge  
