@@ -49,9 +49,28 @@ export const scopes = sqliteTable('scopes', {
   updatedAt:   integer('updated_at').notNull(),
 });
 
+// ── Comments (Researcher-Triager Communication) ──────────────────────────────
+export const comments = sqliteTable('comments', {
+  id:         text('id').primaryKey(),
+  reportId:   text('report_id').notNull(),
+  authorId:   text('author_id').notNull(),
+  authorName: text('author_name').notNull(),
+  authorRole: text('author_role').notNull(), // 'USER', 'TRIAGER', 'ADMIN'
+  message:    text('message').notNull(),
+  createdAt:  integer('created_at').notNull(),
+});
+
 // ── Relations ─────────────────────────────────────────────────────────────────
 export const reportsRelations = relations(reports, ({ many }) => ({
   auditLogs: many(auditLogs),
+  comments: many(comments),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  report: one(reports, {
+    fields: [comments.reportId],
+    references: [reports.id],
+  }),
 }));
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
@@ -68,6 +87,8 @@ export type AuditLog      = typeof auditLogs.$inferSelect;
 export type NewAuditLog   = typeof auditLogs.$inferInsert;
 export type Scope         = typeof scopes.$inferSelect;
 export type NewScope      = typeof scopes.$inferInsert;
+export type Comment       = typeof comments.$inferSelect;
+export type NewComment    = typeof comments.$inferInsert;
 
 export type ReportStatus = 'new' | 'triaged' | 'accepted' | 'rejected' | 'fixed' | 'informational';
 export type Severity     = 'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
