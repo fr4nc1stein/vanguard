@@ -92,6 +92,7 @@ export default function DashboardPage() {
                   <th className="px-5 py-3 text-center">Severity</th>
                   <th className="px-5 py-3 text-center">Status</th>
                   <th className="px-5 py-3 text-right hidden md:table-cell">Submitted</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -112,6 +113,14 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-5 py-4 text-right text-xs text-gray-400 hidden md:table-cell">
                       {formatDate(r.submittedAt)}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <Link
+                        href={`/dashboard/reports/${r.id}`}
+                        className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium rounded-lg transition-colors"
+                      >
+                        View →
+                      </Link>
                     </td>
                   </tr>
                 ))}
