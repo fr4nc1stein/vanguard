@@ -35,7 +35,7 @@ export default function AdminManagement() {
               href="/admin/users"
               className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Coming Soon
+              Manage Users →
             </Link>
           </div>
 
@@ -54,7 +54,7 @@ export default function AdminManagement() {
               href="/admin/scope"
               className="inline-block px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
             >
-              Coming Soon
+              Manage Scope →
             </Link>
           </div>
 
