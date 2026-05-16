@@ -9,8 +9,6 @@ import { requireRole } from '@/lib/auth';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-export const runtime = 'edge';
-
 // GET - List all scopes
 export async function GET(_request: NextRequest) {
   try {
