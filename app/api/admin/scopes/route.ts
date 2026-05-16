@@ -25,8 +25,13 @@ export async function GET(_request: NextRequest) {
     });
   } catch (err) {
     if (err instanceof Response) return err;
-    console.error('[GET /api/admin/scopes]', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[GET /api/admin/scopes] Error:', err);
+    console.error('[GET /api/admin/scopes] Error stack:', err instanceof Error ? err.stack : 'No stack');
+    console.error('[GET /api/admin/scopes] Error message:', err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: err instanceof Error ? err.message : String(err)
+    }, { status: 500 });
   }
 }
 
