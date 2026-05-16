@@ -34,7 +34,11 @@ export async function GET(request: NextRequest) {
     if (status)   conditions.push(eq(reports.status,   status));
     if (severity) conditions.push(eq(reports.severity, severity));
     if (target)   conditions.push(eq(reports.target,   target));
-    if (q)        conditions.push(like(reports.title, `%${q}%`));
+    if (q) {
+      // Sanitize user input to prevent SQL injection via LIKE wildcards
+      const sanitized = q.replace(/[%_\\]/g, '\\$&');
+      conditions.push(like(reports.title, `%${sanitized}%`));
+    }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 

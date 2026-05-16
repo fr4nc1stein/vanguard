@@ -61,9 +61,16 @@ export interface EncryptedPayload {
  */
 export async function encryptText(
   plaintext: string,
-  keyHex = process.env.ENCRYPTION_KEY!,
+  keyHex?: string,
 ): Promise<EncryptedPayload> {
-  const key     = await importKey(keyHex);
+  const encryptionKey = keyHex ?? process.env.ENCRYPTION_KEY;
+  if (!encryptionKey) {
+    throw new Error(
+      'ENCRYPTION_KEY environment variable is not set. ' +
+      'Generate one with: openssl rand -hex 32'
+    );
+  }
+  const key     = await importKey(encryptionKey);
   const iv      = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const encoded = new TextEncoder().encode(plaintext);
   const cipher  = await crypto.subtle.encrypt({ name: ALGORITHM, iv }, key, encoded);
@@ -80,9 +87,16 @@ export async function encryptText(
 export async function decryptText(
   ciphertextHex: string,
   ivHex:         string,
-  keyHex = process.env.ENCRYPTION_KEY!,
+  keyHex?: string,
 ): Promise<string> {
-  const key        = await importKey(keyHex);
+  const encryptionKey = keyHex ?? process.env.ENCRYPTION_KEY;
+  if (!encryptionKey) {
+    throw new Error(
+      'ENCRYPTION_KEY environment variable is not set. ' +
+      'Generate one with: openssl rand -hex 32'
+    );
+  }
+  const key        = await importKey(encryptionKey);
   const iv         = hexToBytes(ivHex);
   const ciphertext = hexToBytes(ciphertextHex);
   const decrypted  = await crypto.subtle.decrypt({ name: ALGORITHM, iv }, key, ciphertext);

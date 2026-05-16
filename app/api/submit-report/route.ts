@@ -51,17 +51,8 @@ export async function POST(req: NextRequest) {
     const referenceId = generateReferenceId();
     const timestamp = new Date().toISOString();
 
-    // Server-side log (visible in Vercel / Node logs)
-    console.log("=== NEW BUG BOUNTY REPORT ===");
-    console.log(`Ref        : ${referenceId}`);
-    console.log(`Time       : ${timestamp}`);
-    console.log(`Researcher : ${body.handle || "Anonymous"}`);
-    console.log(`Email      : ${body.email || "N/A"}`);
-    console.log(`Target     : ${body.target}`);
-    console.log(`Type       : ${body.vulnType || "N/A"}`);
-    console.log(`Severity   : ${body.severity}`);
-    console.log(`Title      : ${body.title}`);
-    console.log("=============================");
+    // Server-side log (no PII - use audit logs for full details)
+    console.log(`[REPORT] New submission: ${referenceId} | Severity: ${body.severity} | Time: ${timestamp}`);
 
     // ── Optional: Discord webhook notification ───────────────────────────────
     // Set DISCORD_WEBHOOK_URL in your .env.local to enable instant notifications.
