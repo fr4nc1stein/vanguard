@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
               { name: 'Target',     value: data.target,                      inline: true  },
               { name: 'Type',       value: data.vulnType,                    inline: true  },
               { name: 'Researcher', value: data.handle || 'Anonymous',       inline: true  },
-              { name: 'Admin URL',  value: `/admin/reports/${reportId}`,     inline: false },
+              { name: 'Triage URL', value: `/triage/reports/${reportId}`,    inline: false },
             ],
             timestamp: new Date().toISOString(),
             footer: { text: 'Vanguard VDP — Vulnerability Disclosure Program' },
