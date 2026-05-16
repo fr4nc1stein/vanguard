@@ -37,6 +37,18 @@ export const auditLogs = sqliteTable('audit_logs', {
   timestamp:  integer('timestamp').notNull(),
 });
 
+// ── Scopes (In-Scope Targets) ────────────────────────────────────────────────
+export const scopes = sqliteTable('scopes', {
+  id:          text('id').primaryKey(),
+  domain:      text('domain').notNull(),
+  description: text('description'),
+  targetType:  text('target_type').notNull().default('web_app'), // 'web_app', 'api', 'mobile', 'infrastructure'
+  status:      text('status').notNull().default('active'), // 'active', 'deprecated', 'out_of_scope'
+  createdBy:   text('created_by').notNull(), // Clerk user ID
+  createdAt:   integer('created_at').notNull(),
+  updatedAt:   integer('updated_at').notNull(),
+});
+
 // ── Relations ─────────────────────────────────────────────────────────────────
 export const reportsRelations = relations(reports, ({ many }) => ({
   auditLogs: many(auditLogs),
@@ -54,7 +66,11 @@ export type Report        = typeof reports.$inferSelect;
 export type NewReport     = typeof reports.$inferInsert;
 export type AuditLog      = typeof auditLogs.$inferSelect;
 export type NewAuditLog   = typeof auditLogs.$inferInsert;
+export type Scope         = typeof scopes.$inferSelect;
+export type NewScope      = typeof scopes.$inferInsert;
 
 export type ReportStatus = 'new' | 'triaged' | 'accepted' | 'rejected' | 'fixed' | 'informational';
 export type Severity     = 'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
 export type UserRole     = 'USER' | 'TRIAGER' | 'ADMIN';
+export type TargetType   = 'web_app' | 'api' | 'mobile' | 'infrastructure';
+export type ScopeStatus  = 'active' | 'deprecated' | 'out_of_scope';
