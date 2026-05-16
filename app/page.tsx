@@ -1,15 +1,9 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "./components/SiteHeader";
 import SiteFooter from "./components/SiteFooter";
 
-const STATS = [
-  { value: "2", label: "In-Scope Targets" },
-  { value: "AES-256", label: "Encrypted Submissions" },
-  { value: "48h", label: "Acknowledgment SLA" },
-  { value: "7 days", label: "Triage SLA" },
-];
 
 const HOW_IT_WORKS = [
   {
@@ -29,9 +23,38 @@ const HOW_IT_WORKS = [
   },
 ];
 
-const IN_SCOPE = ["vanguard.laet4x.com", "laet4x.com"];
+interface Scope {
+  id: string;
+  domain: string;
+  description: string | null;
+  targetType: string;
+  status: string;
+}
 
 export default function Home() {
+  const [scopes, setScopes] = useState<Scope[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchScopes() {
+      try {
+        const res = await fetch('/api/scopes');
+        if (res.ok) {
+          const data = await res.json();
+          setScopes(data.scopes || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch scopes:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchScopes();
+  }, []);
+
+  const activeScopes = scopes.filter(s => s.status === 'active');
+  const scopeCount = activeScopes.length || 2;
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <SiteHeader />
@@ -81,12 +104,22 @@ export default function Home() {
       {/* ── Stats ── */}
       <section className="bg-gray-900 border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {STATS.map(({ value, label }) => (
-            <div key={label} className="text-center">
-              <p className="text-3xl font-extrabold text-blue-400 mb-1">{value}</p>
-              <p className="text-sm text-gray-400">{label}</p>
-            </div>
-          ))}
+          <div className="text-center">
+            <p className="text-3xl font-extrabold text-blue-400 mb-1">{scopeCount}</p>
+            <p className="text-sm text-gray-400">In-Scope Targets</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-extrabold text-blue-400 mb-1">AES-256</p>
+            <p className="text-sm text-gray-400">Encrypted Submissions</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-extrabold text-blue-400 mb-1">48h</p>
+            <p className="text-sm text-gray-400">Acknowledgment SLA</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-extrabold text-blue-400 mb-1">7 days</p>
+            <p className="text-sm text-gray-400">Triage SLA</p>
+          </div>
         </div>
       </section>
 
@@ -125,18 +158,24 @@ export default function Home() {
             </p>
           </div>
           <div className="space-y-3">
-            {IN_SCOPE.map((target) => (
-              <div
-                key={target}
-                className="flex items-center gap-3 bg-gray-950 border border-white/10 rounded-xl px-5 py-4"
-              >
-                <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-400" />
-                <span className="font-mono text-white text-sm">{target}</span>
-                <span className="ml-auto text-xs text-gray-500 bg-gray-800 rounded-md px-2 py-0.5">
-                  In scope
-                </span>
-              </div>
-            ))}
+            {loading ? (
+              <div className="text-center py-8 text-gray-400">Loading scopes...</div>
+            ) : activeScopes.length > 0 ? (
+              activeScopes.map((scope) => (
+                <div
+                  key={scope.id}
+                  className="flex items-center gap-3 bg-gray-950 border border-white/10 rounded-xl px-5 py-4"
+                >
+                  <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-400" />
+                  <span className="font-mono text-white text-sm">{scope.domain}</span>
+                  <span className="ml-auto text-xs text-gray-500 bg-gray-800 rounded-md px-2 py-0.5">
+                    In scope
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-400">No active scopes available</div>
+            )}
           </div>
         </div>
       </section>
