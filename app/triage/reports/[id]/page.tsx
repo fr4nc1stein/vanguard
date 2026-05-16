@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import ReportStatusBadge from "../../../components/ReportStatusBadge";
@@ -235,8 +236,8 @@ export default function AdminReportDetail() {
             {report.body && (
               <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
                 <h2 className="font-semibold text-gray-900 text-base">Report Details</h2>
-                <div className="prose prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">{report.body}</pre>
+                <div className="prose prose-sm max-w-none text-gray-700">
+                  <ReactMarkdown>{report.body}</ReactMarkdown>
                 </div>
               </div>
             )}

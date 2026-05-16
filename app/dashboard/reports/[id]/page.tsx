@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import ReportStatusBadge from "../../../components/ReportStatusBadge";
@@ -203,8 +204,8 @@ export default function ResearcherReportDetailPage() {
           {/* Report Body */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
-            <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
-              {report.body}
+            <div className="prose prose-sm max-w-none text-gray-700">
+              <ReactMarkdown>{report.body}</ReactMarkdown>
             </div>
           </div>
 
