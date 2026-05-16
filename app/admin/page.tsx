@@ -69,12 +69,12 @@ export default function AdminManagement() {
             <p className="text-sm text-gray-600 mb-4">
               Configure SLAs, notification settings, bounty ranges, and submission rules.
             </p>
-            <Link
-              href="/admin/settings"
-              className="inline-block px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+            <button
+              disabled
+              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
             >
               Coming Soon
-            </Link>
+            </button>
           </div>
 
           {/* Analytics */}
@@ -88,12 +88,12 @@ export default function AdminManagement() {
             <p className="text-sm text-gray-600 mb-4">
               View platform metrics, trend analysis, and export compliance reports.
             </p>
-            <Link
-              href="/admin/analytics"
-              className="inline-block px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors"
+            <button
+              disabled
+              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
             >
               Coming Soon
-            </Link>
+            </button>
           </div>
 
           {/* Hall of Fame */}
@@ -107,12 +107,12 @@ export default function AdminManagement() {
             <p className="text-sm text-gray-600 mb-4">
               Manage researcher profiles, recognition tiers, and bounty tracking.
             </p>
-            <Link
-              href="/admin/hall-of-fame"
-              className="inline-block px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors"
+            <button
+              disabled
+              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
             >
               Coming Soon
-            </Link>
+            </button>
           </div>
 
           {/* Audit Logs */}
@@ -126,12 +126,12 @@ export default function AdminManagement() {
             <p className="text-sm text-gray-600 mb-4">
               View comprehensive platform activity logs and compliance reports.
             </p>
-            <Link
-              href="/admin/audit-logs"
-              className="inline-block px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+            <button
+              disabled
+              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
             >
               Coming Soon
-            </Link>
+            </button>
           </div>
         </div>
 

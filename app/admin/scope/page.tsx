@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
+import Toast from "../../components/Toast";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 interface Scope {
   id: string;
@@ -33,13 +35,15 @@ export default function ScopeManagement() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingScope, setEditingScope] = useState<Scope | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     domain: "",
     description: "",
     targetType: "web_app",
     status: "active",
   });
-  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ id: string; domain: string } | null>(null);
 
   useEffect(() => {
     fetchScopes();
@@ -54,7 +58,10 @@ export default function ScopeManagement() {
       setScopes(data.scopes);
     } catch (err) {
       console.error('[fetchScopes]', err);
-      alert('Failed to load scopes');
+      setToast({
+        message: 'Failed to load scopes',
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -83,19 +90,29 @@ export default function ScopeManagement() {
       setShowAddModal(false);
       setEditingScope(null);
       setFormData({ domain: "", description: "", targetType: "web_app", status: "active" });
-      alert(editingScope ? 'Scope updated successfully' : 'Scope added successfully');
+      setToast({
+        message: editingScope ? 'Scope updated successfully!' : 'Scope added successfully!',
+        type: 'success'
+      });
     } catch (err: unknown) {
       console.error('[handleSubmit]', err);
-      alert(err instanceof Error ? err.message : 'Failed to save scope');
+      setToast({
+        message: err instanceof Error ? err.message : 'Failed to save scope',
+        type: 'error'
+      });
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this scope? This action cannot be undone.')) {
-      return;
-    }
+  async function confirmDelete(id: string, domain: string) {
+    setConfirmDialog({ id, domain });
+  }
+
+  async function handleDelete() {
+    if (!confirmDialog) return;
+    const { id } = confirmDialog;
+    setConfirmDialog(null);
 
     try {
       const res = await fetch(`/api/admin/scopes/${id}`, {
@@ -108,10 +125,16 @@ export default function ScopeManagement() {
       }
 
       await fetchScopes();
-      alert('Scope deleted successfully');
+      setToast({
+        message: 'Scope deleted successfully!',
+        type: 'success'
+      });
     } catch (err: unknown) {
       console.error('[handleDelete]', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete scope');
+      setToast({
+        message: err instanceof Error ? err.message : 'Failed to delete scope',
+        type: 'error'
+      });
     }
   }
 
@@ -243,8 +266,8 @@ export default function ScopeManagement() {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(scope.id)}
-                            className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition-colors"
+                            onClick={() => confirmDelete(scope.id, scope.domain)}
+                            className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           >
                             Delete
                           </button>
@@ -358,6 +381,28 @@ export default function ScopeManagement() {
       )}
 
       <SiteFooter />
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Delete Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title="Delete Target"
+          message={`Are you sure you want to delete "${confirmDialog.domain}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </main>
   );
 }
