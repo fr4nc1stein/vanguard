@@ -32,12 +32,15 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Decrypt body (staff only — decryption is audited)
+    // Decrypt body (owner or staff can view)
     let decryptedBody: Record<string, string> | null = null;
-    if (isStaff) {
+    if (isOwner || isStaff) {
       const rawBody = await decryptText(report.bodyEncrypted, report.bodyIv);
       decryptedBody = JSON.parse(rawBody);
-      await logAudit({ db, reportId: report.id, actorId: userId, action: 'report_decrypted' });
+      // Only audit staff decryption (not owner viewing their own report)
+      if (isStaff && !isOwner) {
+        await logAudit({ db, reportId: report.id, actorId: userId, action: 'report_decrypted' });
+      }
     }
 
     // Resolve PoC file keys (stored as JSON array, no R2 URLs)

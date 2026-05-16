@@ -71,8 +71,25 @@ export default function ResearcherReportDetailPage() {
     try {
       const res = await fetch(`/api/reports/${reportId}`);
       if (!res.ok) throw new Error("Failed to fetch report");
-      const data = await res.json();
-      setReport(data.report);
+      const json = await res.json();
+      // API returns { data: { ... } }
+      const reportData = json.data;
+      setReport({
+        id: reportData.id,
+        refId: reportData.ref_id,
+        handle: reportData.handle,
+        target: reportData.target,
+        vulnType: reportData.vuln_type,
+        severity: reportData.severity,
+        title: reportData.title,
+        body: reportData.body || "Report content encrypted",
+        cvss: reportData.cvss,
+        status: reportData.status,
+        assignedTo: reportData.assigned_to,
+        pocFiles: reportData.poc_files?.join(", ") || "",
+        submittedAt: new Date(reportData.created_at).getTime(),
+        updatedAt: new Date(reportData.updated_at).getTime(),
+      });
     } catch (err) {
       console.error("[fetchReport]", err);
       setError("Failed to load report details");
