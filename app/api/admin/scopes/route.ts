@@ -39,8 +39,8 @@ export async function GET(_request: NextRequest) {
 const CreateScopeSchema = z.object({
   domain: z.string().min(1).max(200),
   description: z.string().max(500).optional(),
-  targetType: z.enum(['web_app', 'api', 'mobile', 'infrastructure']).default('web_app'),
-  status: z.enum(['active', 'deprecated', 'out_of_scope']).default('active'),
+  targetType: z.enum(['web_app', 'api', 'mobile', 'infrastructure']).optional(),
+  status: z.enum(['active', 'deprecated', 'out_of_scope']).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
       id,
       domain: data.domain,
       description: data.description || null,
-      targetType: data.targetType,
-      status: data.status,
+      targetType: data.targetType || 'web_app',
+      status: data.status || 'active',
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
