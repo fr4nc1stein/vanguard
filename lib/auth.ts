@@ -8,7 +8,7 @@
  * Default role for new sign-ups: USER (set via Clerk webhook or middleware).
  */
 
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import type { UserRole } from '@/lib/db/schema';
 
 export { UserRole };
@@ -20,23 +20,34 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
 };
 
 /**
- * Extracts the role from the current Clerk session.
+ * Extracts the role from the current Clerk user via API.
  * Falls back to USER if no role is set.
+ * 
+ * NOTE: We fetch from Clerk API instead of sessionClaims because
+ * publicMetadata is not included in JWT by default.
  */
 export async function getSessionRole(): Promise<UserRole> {
-  const { sessionClaims } = await auth();
-  const metadata = sessionClaims?.publicMetadata as { role?: string } | undefined;
-  const role = metadata?.role;
+  const { userId } = await auth();
+  if (!userId) return 'USER';
   
-  // Debug logging (development only)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[getSessionRole] extracted role:', role);
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const role = (user.publicMetadata as { role?: string })?.role;
+    
+    // Debug logging (development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[getSessionRole] extracted role:', role);
+    }
+    
+    if (role === 'ADMIN' || role === 'TRIAGER' || role === 'USER') return role;
+    
+    console.warn('[getSessionRole] Invalid or missing role, defaulting to USER. Got:', role);
+    return 'USER';
+  } catch (err) {
+    console.error('[getSessionRole] Failed to fetch user from Clerk:', err);
+    return 'USER';
   }
-  
-  if (role === 'ADMIN' || role === 'TRIAGER' || role === 'USER') return role;
-  
-  console.warn('[getSessionRole] Invalid or missing role, defaulting to USER. Got:', role);
-  return 'USER';
 }
 
 /**
