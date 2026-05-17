@@ -24,8 +24,11 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole('ADMIN');
+    console.log('[PATCH /api/admin/scopes/[id]] Starting request');
+    const authResult = await requireRole('ADMIN');
+    console.log('[PATCH /api/admin/scopes/[id]] Auth successful:', authResult.userId);
     const { id } = await context.params;
+    console.log('[PATCH /api/admin/scopes/[id]] Scope ID:', id);
 
     let body: unknown;
     try { body = await request.json(); } catch {
