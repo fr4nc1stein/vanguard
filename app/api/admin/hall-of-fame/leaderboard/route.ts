@@ -3,15 +3,39 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/auth';
-import { getLeaderboard } from '@/lib/services/hall-of-fame';
-
-export const runtime = 'edge';
+import { getDb, getCfEnv } from '@/lib/db';
+import { researcherStats } from '@/lib/db/schema';
+import { desc } from 'drizzle-orm';
 
 export async function GET(_request: NextRequest) {
   try {
     await requireRole('ADMIN');
 
-    const leaderboard = await getLeaderboard(100);
+    const db = getDb(getCfEnv().DB);
+    
+    const leaders = await db
+      .select()
+      .from(researcherStats)
+      .orderBy(desc(researcherStats.totalPoints))
+      .limit(100)
+      .all();
+
+    const leaderboard = leaders.map((leader, index) => ({
+      rank: index + 1,
+      researcherId: leader.researcherId,
+      researcherName: leader.researcherName,
+      avatarUrl: null,
+      totalPoints: leader.totalPoints,
+      acceptedReports: leader.acceptedReports,
+      totalReports: leader.totalReports,
+      criticalCount: leader.criticalCount,
+      highCount: leader.highCount,
+      mediumCount: leader.mediumCount,
+      lowCount: leader.lowCount,
+      infoCount: leader.infoCount,
+      firstReportAt: leader.firstReportAt,
+      lastReportAt: leader.lastReportAt,
+    }));
 
     return NextResponse.json({
       leaderboard,

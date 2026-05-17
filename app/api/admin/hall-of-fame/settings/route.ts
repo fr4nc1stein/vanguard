@@ -9,8 +9,6 @@ import { pointsConfig, auditLogs } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-export const runtime = 'edge';
-
 // GET - Get current points configuration
 export async function GET(_request: NextRequest) {
   try {
