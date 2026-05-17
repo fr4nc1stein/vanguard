@@ -33,16 +33,83 @@ export default function UserManagement() {
   const itemsPerPage = 25;
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ userId: string; newRole: string; userName: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<keyof User | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  // Search and filter logic
+  const filteredUsers = users.filter(user => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    const displayName = getUserDisplayName(user).toLowerCase();
+    return (
+      displayName.includes(query) ||
+      (user.email && user.email.toLowerCase().includes(query)) ||
+      (user.username && user.username.toLowerCase().includes(query)) ||
+      user.role.toLowerCase().includes(query)
+    );
+  });
+
+  // Sorting logic
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let aVal: any = a[sortField];
+    let bVal: any = b[sortField];
+    
+    // Special handling for display name
+    if (sortField === 'firstName') {
+      aVal = getUserDisplayName(a);
+      bVal = getUserDisplayName(b);
+    }
+    
+    // Handle null values
+    if (aVal === null || aVal === undefined) return 1;
+    if (bVal === null || bVal === undefined) return -1;
+    
+    // Handle string comparison
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+    
+    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   // Pagination logic
-  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = users.slice(startIndex, endIndex);
+  const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
+
+  // Handle sort column click
+  const handleSort = (field: keyof User) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  // Sort icon component
+  const SortIcon = ({ field }: { field: keyof User }) => {
+    if (sortField !== field) {
+      return <span className="ml-1 text-gray-400">↕</span>;
+    }
+    return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   async function fetchUsers() {
     setLoading(true);
@@ -112,6 +179,27 @@ export default function UserManagement() {
           </Link>
         </div>
 
+        {/* Search Bar */}
+        {!loading && users.length > 0 && (
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by name, email, username, or role..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <svg className="absolute left-3 top-3 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {searchQuery && (
+              <p className="text-xs text-gray-500 mt-2">
+                Found {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -151,11 +239,21 @@ export default function UserManagement() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">User</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Joined</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Last Sign In</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100" onClick={() => handleSort('firstName')}>
+                      User <SortIcon field="firstName" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100" onClick={() => handleSort('email')}>
+                      Email <SortIcon field="email" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100" onClick={() => handleSort('role')}>
+                      Role <SortIcon field="role" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100" onClick={() => handleSort('createdAt')}>
+                      Joined <SortIcon field="createdAt" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100" onClick={() => handleSort('lastSignInAt')}>
+                      Last Sign In <SortIcon field="lastSignInAt" />
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
@@ -230,7 +328,7 @@ export default function UserManagement() {
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
                 itemsPerPage={itemsPerPage}
-                totalItems={users.length}
+                totalItems={sortedUsers.length}
               />
             </div>
           )}
