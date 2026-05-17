@@ -14,11 +14,11 @@ const ToggleVisibilitySchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await requireRole('ADMIN');
-    const { id } = params;
+    const { id } = await params;
 
     let body: unknown;
     try {
