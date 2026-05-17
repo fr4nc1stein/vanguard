@@ -4,6 +4,8 @@ import Link from "next/link";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import Pagination from "../../components/Pagination";
+import Toast from "../../components/Toast";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 interface User {
   id: string;
@@ -29,6 +31,8 @@ export default function UserManagement() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ userId: string; newRole: string; userName: string } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -49,17 +53,13 @@ export default function UserManagement() {
       setUsers(data.users);
     } catch (err) {
       console.error('[fetchUsers]', err);
-      alert('Failed to load users');
+      setToast({ message: 'Failed to load users', type: 'error' });
     } finally {
       setLoading(false);
     }
   }
 
   async function updateUserRole(userId: string, newRole: string) {
-    if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
-      return;
-    }
-
     setUpdating(userId);
     try {
       const res = await fetch('/api/admin/users', {
@@ -75,10 +75,10 @@ export default function UserManagement() {
 
       // Refresh users list
       await fetchUsers();
-      alert(`User role updated to ${newRole}`);
+      setToast({ message: `User role updated to ${newRole}`, type: 'success' });
     } catch (err: unknown) {
       console.error('[updateUserRole]', err);
-      alert(err instanceof Error ? err.message : 'Failed to update role');
+      setToast({ message: err instanceof Error ? err.message : 'Failed to update role', type: 'error' });
     } finally {
       setUpdating(null);
     }
@@ -191,7 +191,7 @@ export default function UserManagement() {
                         <div className="flex items-center gap-2">
                           {user.role === 'USER' && (
                             <button
-                              onClick={() => updateUserRole(user.id, 'TRIAGER')}
+                              onClick={() => setConfirmDialog({ userId: user.id, newRole: 'TRIAGER', userName: getUserDisplayName(user) })}
                               disabled={updating === user.id}
                               className="px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 transition-colors disabled:opacity-50"
                             >
@@ -217,13 +217,7 @@ export default function UserManagement() {
                             </>
                           )}
                           {user.role === 'ADMIN' && (
-                            <button
-                              onClick={() => updateUserRole(user.id, 'TRIAGER')}
-                              disabled={updating === user.id}
-                              className="px-3 py-1 bg-gray-600 text-white text-xs font-medium rounded hover:bg-gray-700 transition-colors disabled:opacity-50"
-                            >
-                              Demote to Triager
-                            </button>
+                            <span className="text-xs text-gray-500 italic">Manage in Clerk</span>
                           )}
                         </div>
                       </td>
@@ -254,6 +248,29 @@ export default function UserManagement() {
       </div>
 
       <SiteFooter />
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title="Promote to Triager"
+          message={`Are you sure you want to promote ${confirmDialog.userName} to TRIAGER role? This will grant them access to triage reports and change statuses.`}
+          type="warning"
+          onConfirm={() => {
+            updateUserRole(confirmDialog.userId, confirmDialog.newRole);
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </main>
   );
 }
