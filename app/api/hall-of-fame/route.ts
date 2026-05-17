@@ -58,6 +58,7 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json({
       leaderboard: leaderboardWithAvatars,
       total: leaderboardWithAvatars.length,
+      period: 'all-time',
     });
   } catch (error) {
     console.error('[GET /api/hall-of-fame] Error:', error);

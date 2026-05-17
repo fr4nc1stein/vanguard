@@ -19,6 +19,8 @@ interface LeaderboardEntry {
   infoCount: number;
   firstReportAt: number | null;
   lastReportAt: number | null;
+  id?: string;
+  isPublic?: boolean;
 }
 
 interface PointsConfig {

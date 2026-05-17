@@ -3,17 +3,30 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
-import { hacktivity } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { hacktivity, hallOfFame } from '@/lib/db/schema';
+import { desc, eq } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 
 export async function GET(_request: NextRequest) {
   try {
     const db = getDb(getCfEnv().DB);
     
+    // Only show public entries
     const activities = await db
-      .select()
+      .select({
+        id: hacktivity.id,
+        reportId: hacktivity.reportId,
+        researcherId: hacktivity.researcherId,
+        researcherName: hacktivity.researcherName,
+        action: hacktivity.action,
+        title: hacktivity.title,
+        severity: hacktivity.severity,
+        points: hacktivity.points,
+        timestamp: hacktivity.timestamp,
+      })
       .from(hacktivity)
+      .innerJoin(hallOfFame, eq(hacktivity.reportId, hallOfFame.reportId))
+      .where(eq(hallOfFame.isPublic, 1))
       .orderBy(desc(hacktivity.timestamp))
       .limit(100)
       .all();

@@ -101,10 +101,14 @@ function formatDate(timestamp: number): string {
 const SEVERITIES = ["all", "critical", "high", "medium", "low", "informational"] as const;
 type SevFilter = (typeof SEVERITIES)[number];
 
+const PERIODS = ["all-time", "month", "year"] as const;
+type Period = (typeof PERIODS)[number];
+
 // ─── Page component ───────────────────────────────────────────────────────────
 export default function HallOfFame() {
   const [tab, setTab] = useState<"leaderboard" | "activity">("leaderboard");
   const [sevFilter, setSevFilter] = useState<SevFilter>("all");
+  const [period, setPeriod] = useState<Period>("all-time");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [hacktivity, setHacktivity] = useState<HacktivityEntry[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -114,7 +118,7 @@ export default function HallOfFame() {
     async function fetchData() {
       try {
         const [leaderboardRes, hacktivityRes, statsRes] = await Promise.all([
-          fetch('/api/hall-of-fame'),
+          fetch(`/api/hall-of-fame?period=${period}`),
           fetch('/api/hacktivity'),
           fetch('/api/hall-of-fame/stats'),
         ]);
@@ -141,7 +145,7 @@ export default function HallOfFame() {
     }
 
     fetchData();
-  }, []);
+  }, [period]);
 
   const filteredActivity = sevFilter === "all" 
     ? hacktivity 
@@ -204,19 +208,48 @@ export default function HallOfFame() {
           </Link>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-gray-200 mb-6">
-          {([["leaderboard", "🏆 Leaderboard"], ["activity", "⚡ Hactivity"]] as const).map(([id, label]) => (
+        {/* Time Period Filter */}
+        <div className="flex items-center justify-between mb-6 border-b border-gray-200">
+          <div className="flex gap-2">
             <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px ${
-                tab === id ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-800"
+              onClick={() => setTab("leaderboard")}
+              className={`px-5 py-3 font-semibold transition-colors ${
+                tab === "leaderboard"
+                  ? "text-blue-700 border-b-2 border-blue-700"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              {label}
+              🏆 Leaderboard
             </button>
-          ))}
+            <button
+              onClick={() => setTab("activity")}
+              className={`px-5 py-3 font-semibold transition-colors ${
+                tab === "activity"
+                  ? "text-blue-700 border-b-2 border-blue-700"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              ⚡ Hacktivity
+            </button>
+          </div>
+          {/* Time Period Filter (only for leaderboard) */}
+          {tab === "leaderboard" && (
+            <div className="flex gap-2 mb-2">
+              {PERIODS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors capitalize ${
+                    period === p
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {p === 'all-time' ? 'All Time' : p === 'month' ? 'This Month' : 'This Year'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Leaderboard ───────────────────────────────────────────────── */}
