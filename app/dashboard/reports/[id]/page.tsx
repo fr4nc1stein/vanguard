@@ -7,6 +7,11 @@ import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import ReportStatusBadge from "../../../components/ReportStatusBadge";
 
+interface Toast {
+  message: string;
+  type: "success" | "error";
+}
+
 interface ReportDetail {
   id: string;
   refId: string;
@@ -60,6 +65,7 @@ export default function ResearcherReportDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -67,6 +73,13 @@ export default function ResearcherReportDetailPage() {
     fetchReport();
     fetchComments();
   }, [reportId]);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   async function fetchReport() {
     try {
@@ -127,9 +140,10 @@ export default function ResearcherReportDetailPage() {
 
       setNewComment("");
       await fetchComments();
+      setToast({ message: "Comment posted successfully", type: "success" });
     } catch (err) {
       console.error("[handleSubmitComment]", err);
-      alert("Failed to post comment. Please try again.");
+      setToast({ message: "Failed to post comment. Please try again.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -281,6 +295,21 @@ export default function ResearcherReportDetailPage() {
             ← Back to My Submissions
           </Link>
         </div>
+
+        {/* Toast Notification */}
+        {toast && (
+          <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+            <div
+              className={`px-6 py-3 rounded-lg shadow-lg ${
+                toast.type === "success"
+                  ? "bg-green-600 text-white"
+                  : "bg-red-600 text-white"
+              }`}
+            >
+              {toast.message}
+            </div>
+          </div>
+        )}
       </div>
 
       <SiteFooter />
