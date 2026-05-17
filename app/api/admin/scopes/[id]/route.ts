@@ -50,19 +50,24 @@ export async function PATCH(
     }
 
     // Build update object with proper field mapping
-    const updateData: Record<string, any> = {
+    const updateData: any = {
       updatedAt: Date.now(),
     };
     
     if (data.domain !== undefined) updateData.domain = data.domain;
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.targetType !== undefined) updateData.target_type = data.targetType;
+    if (data.targetType !== undefined) updateData.targetType = data.targetType;
     if (data.status !== undefined) updateData.status = data.status;
 
     // Update scope
-    await db.update(scopes)
-      .set(updateData)
-      .where(eq(scopes.id, id));
+    try {
+      await db.update(scopes)
+        .set(updateData)
+        .where(eq(scopes.id, id));
+    } catch (dbError) {
+      console.error('[PATCH /api/admin/scopes/[id]] Database error:', dbError);
+      throw dbError;
+    }
 
     const updated = await db.select().from(scopes).where(eq(scopes.id, id)).get();
 
