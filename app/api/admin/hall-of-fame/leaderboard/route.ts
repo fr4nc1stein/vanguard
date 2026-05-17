@@ -6,6 +6,7 @@ import { requireRole } from '@/lib/auth';
 import { getDb, getCfEnv } from '@/lib/db';
 import { researcherStats } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -20,22 +21,41 @@ export async function GET(_request: NextRequest) {
       .limit(100)
       .all();
 
-    const leaderboard = leaders.map((leader, index) => ({
-      rank: index + 1,
-      researcherId: leader.researcherId,
-      researcherName: leader.researcherName,
-      avatarUrl: null,
-      totalPoints: leader.totalPoints,
-      acceptedReports: leader.acceptedReports,
-      totalReports: leader.totalReports,
-      criticalCount: leader.criticalCount,
-      highCount: leader.highCount,
-      mediumCount: leader.mediumCount,
-      lowCount: leader.lowCount,
-      infoCount: leader.infoCount,
-      firstReportAt: leader.firstReportAt,
-      lastReportAt: leader.lastReportAt,
-    }));
+    // Fetch Clerk data for all researchers
+    const clerk = await clerkClient();
+    const leaderboard = await Promise.all(
+      leaders.map(async (leader, index) => {
+        let researcherName = leader.researcherName;
+        let avatarUrl = null;
+        
+        try {
+          const user = await clerk.users.getUser(leader.researcherId);
+          researcherName = user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}`
+            : user.username || user.emailAddresses[0]?.emailAddress || leader.researcherName;
+          avatarUrl = user.imageUrl;
+        } catch (err) {
+          console.warn(`[admin leaderboard] Failed to fetch Clerk data for ${leader.researcherId}:`, err);
+        }
+        
+        return {
+          rank: index + 1,
+          researcherId: leader.researcherId,
+          researcherName,
+          avatarUrl,
+          totalPoints: leader.totalPoints,
+          acceptedReports: leader.acceptedReports,
+          totalReports: leader.totalReports,
+          criticalCount: leader.criticalCount,
+          highCount: leader.highCount,
+          mediumCount: leader.mediumCount,
+          lowCount: leader.lowCount,
+          infoCount: leader.infoCount,
+          firstReportAt: leader.firstReportAt,
+          lastReportAt: leader.lastReportAt,
+        };
+      })
+    );
 
     return NextResponse.json({
       leaderboard,

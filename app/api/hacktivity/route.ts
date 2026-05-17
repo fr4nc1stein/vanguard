@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
 import { hacktivity } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -17,10 +18,31 @@ export async function GET(_request: NextRequest) {
       .limit(100)
       .all();
 
-    const activitiesWithAvatars = activities.map(activity => ({
-      ...activity,
-      avatarUrl: null, // Will use initials fallback in frontend
-    }));
+    // Fetch Clerk data for all researchers
+    const clerk = await clerkClient();
+    const activitiesWithAvatars = await Promise.all(
+      activities.map(async (activity) => {
+        let researcherName = activity.researcherName;
+        let avatarUrl = null;
+        
+        try {
+          const user = await clerk.users.getUser(activity.researcherId);
+          researcherName = user.firstName && user.lastName 
+            ? `${user.firstName} ${user.lastName}`
+            : user.username || user.emailAddresses[0]?.emailAddress || activity.researcherName;
+          avatarUrl = user.imageUrl;
+        } catch (err) {
+          // User not found or error fetching, use stored name
+          console.warn(`[getHacktivity] Failed to fetch Clerk data for ${activity.researcherId}:`, err);
+        }
+        
+        return {
+          ...activity,
+          researcherName,
+          avatarUrl,
+        };
+      })
+    );
 
     return NextResponse.json({
       activities: activitiesWithAvatars,
