@@ -56,7 +56,7 @@ export async function PATCH(
     
     if (data.domain !== undefined) updateData.domain = data.domain;
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.targetType !== undefined) updateData.targetType = data.targetType;
+    if (data.targetType !== undefined) updateData.target_type = data.targetType;
     if (data.status !== undefined) updateData.status = data.status;
 
     // Update scope

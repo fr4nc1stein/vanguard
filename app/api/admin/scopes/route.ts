@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       id,
       domain: data.domain,
       description: data.description || null,
-      targetType: data.targetType || 'web_app',
+      target_type: data.targetType || 'web_app',
       status: data.status || 'active',
       createdBy: userId,
       createdAt: now,
