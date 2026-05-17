@@ -8,6 +8,7 @@ const CONFIG: Record<ReportStatus, { label: string; bg: string; text: string; do
   rejected:      { label: "Rejected",      bg: "bg-red-100",    text: "text-red-800",    dot: "bg-red-400"    },
   fixed:         { label: "Fixed",         bg: "bg-teal-100",   text: "text-teal-800",   dot: "bg-teal-500"   },
   informational: { label: "Informational", bg: "bg-gray-100",   text: "text-gray-700",   dot: "bg-gray-400"   },
+  duplicate:     { label: "Duplicate",     bg: "bg-orange-100", text: "text-orange-800", dot: "bg-orange-500" },
 };
 
 export default function ReportStatusBadge({ status }: { status: string }) {
