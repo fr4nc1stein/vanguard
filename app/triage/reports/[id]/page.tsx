@@ -78,6 +78,10 @@ export default function AdminReportDetail() {
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  // Hall of Fame visibility state
+  const [hallOfFameEntry, setHallOfFameEntry] = useState<{ id: string; isPublic: boolean } | null>(null);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
+
   useEffect(() => {
     fetch(`/api/reports/${id}`)
       .then(async (r) => {
@@ -93,7 +97,23 @@ export default function AdminReportDetail() {
       .finally(() => setLoading(false));
     
     fetchComments();
+    fetchHallOfFameEntry();
   }, [id]);
+
+  async function fetchHallOfFameEntry() {
+    try {
+      const res = await fetch(`/api/admin/hall-of-fame/entries`);
+      if (res.ok) {
+        const data = await res.json();
+        const entry = data.entries?.find((e: any) => e.reportId === id);
+        if (entry) {
+          setHallOfFameEntry({ id: entry.id, isPublic: entry.isPublic });
+        }
+      }
+    } catch (error) {
+      console.error('[fetchHallOfFameEntry] Error:', error);
+    }
+  }
 
   async function fetchComments() {
     try {
@@ -134,29 +154,28 @@ export default function AdminReportDetail() {
   async function applyTransition(newStatus: string) {
     if (!report) return;
     setTriageLoading(newStatus);
-    try {
-      const body: Record<string, string> = { status: newStatus };
-      if (triageComment)  body.comment  = triageComment;
-      if (triageSeverity) body.severity = triageSeverity;
-      if (triageAssignTo) body.assignedTo = triageAssignTo;
 
+    try {
       const res = await fetch(`/api/admin/reports/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          status: newStatus,
+          severity: triageSeverity,
+          assignedTo: triageAssignTo || null,
+          comment: triageComment || null,
+        }),
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(err.error ?? "Failed to update");
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update status");
       }
 
-      // Reload the report
-      const refreshed = await fetch(`/api/reports/${id}`).then((r) => r.json());
-      setReport(refreshed.data ?? refreshed);
-      setTriageComment("");
+      // Refresh
+      window.location.reload();
     } catch (e: unknown) {
-      alert(`Error: ${e instanceof Error ? e.message : "Unknown error"}`);
+      alert((e as Error).message);
     } finally {
       setTriageLoading(null);
     }
@@ -332,6 +351,44 @@ export default function AdminReportDetail() {
 
           {/* ── Right: Triage panel ───────────────────────────────────────── */}
           <div className="space-y-5">
+
+            {/* Hall of Fame Visibility Toggle */}
+            {hallOfFameEntry && (report?.status === 'accepted' || report?.status === 'fixed' || report?.status === 'duplicate') && (
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h2 className="font-semibold text-gray-900 mb-3">👁️ Hall of Fame Visibility</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  Control whether this entry appears on the public Hall of Fame page.
+                </p>
+                <button
+                  onClick={handleToggleVisibility}
+                  disabled={togglingVisibility}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                    hallOfFameEntry.isPublic
+                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {togglingVisibility ? (
+                    <>⏳ Updating...</>
+                  ) : hallOfFameEntry.isPublic ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Public - Click to Hide
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                      Hidden - Click to Make Public
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* Status transitions */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
