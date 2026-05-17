@@ -2,6 +2,48 @@
 
 All notable changes to the Vanguard VDP platform.
 
+## [2.5.0] - 2026-05-16
+
+### 🏆 Hall of Fame System (Major Feature)
+- Implemented complete Hall of Fame system with public leaderboard
+- Added points-based researcher recognition and ranking
+- Created time period filtering (All Time, This Month, This Year)
+- Built Hacktivity feed showing recent accepted/resolved reports
+- Integrated Clerk for researcher avatars and display names
+- Implemented automatic title redaction for privacy (emails, IPs, tokens, API keys)
+
+### 👁️ Visibility Management
+- Added per-entry visibility toggle for admins
+- Implemented search and pagination for Hall of Fame entries (10 per page)
+- Created visibility toggle on triage report detail page
+- Added clickable report links in admin entry management
+- Built comprehensive entry management interface
+
+### ⚙️ Points Configuration
+- Created admin interface for points configuration
+- Implemented customizable points per severity level
+- Added audit logging for configuration changes
+- Built auto-award system on report acceptance/fix
+
+### 🗄️ Database
+- Created 4 new tables: `hall_of_fame`, `researcher_stats`, `hacktivity`, `points_config`
+- Implemented database migrations and backfill scripts
+- Added indexes for performance optimization
+- Created aggregation system for researcher statistics
+
+### 🔧 Bug Fixes & Improvements
+- Fixed edge runtime compatibility issues with Clerk API
+- Removed `edge` runtime from scope endpoints for better compatibility
+- Added comprehensive error logging for debugging
+- Fixed hacktivity status update (accepted → resolved)
+- Improved empty description handling in scope updates
+
+### 📚 Documentation
+- Created comprehensive Hall of Fame documentation
+- Documented all API endpoints and database schema
+- Added testing checklist and known issues
+- Updated README with completed features
+
 ## [1.0.0] - 2026-05-07
 
 ### ✅ Authentication & Authorization

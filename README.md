@@ -3,7 +3,7 @@
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
 **Live:** https://vanguard-vdp.fr4nc1stein.workers.dev  
-**Version:** v2.4.0  
+**Version:** v2.5.0  
 **Status:** ✅ Production Ready
 
 ## Documentation
@@ -17,6 +17,7 @@ A modern vulnerability disclosure platform built for security researchers and se
 | [docs/agent.md](docs/agent.md) | Developer persona — stack rules, failure modes, code patterns |
 | [ISSUES.md](ISSUES.md) | Known issues, edge runtime pitfalls, debugging tips |
 | [docs/ADMIN_FEATURES.md](docs/ADMIN_FEATURES.md) | Admin features roadmap and specifications |
+| [docs/HALL_OF_FAME.md](docs/HALL_OF_FAME.md) | Hall of Fame system documentation |
 
 ## Tech Stack
 
@@ -39,8 +40,19 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **Report Detail View** — Full report viewing with markdown support
 - ✅ **Comments System** — Two-way communication between researchers and triage team
 - ✅ **Triage Workflow** — Complete report lifecycle management
-- ✅ **Hall of Fame** — Public recognition of accepted researchers
 - ✅ **Security Policy** — Responsible disclosure guidelines and scope
+
+### 🏆 Hall of Fame System (v2.5.0)
+- ✅ **Public Leaderboard** — Points-based researcher rankings
+- ✅ **Time Period Filters** — All Time, This Month, This Year views
+- ✅ **Hacktivity Feed** — Real-time activity of accepted/resolved reports
+- ✅ **Auto-Award System** — Automatic points on report acceptance
+- ✅ **Visibility Management** — Per-entry public/private toggle
+- ✅ **Points Configuration** — Customizable points per severity
+- ✅ **Title Redaction** — Automatic removal of sensitive info (emails, IPs, tokens)
+- ✅ **Researcher Profiles** — Clerk-integrated avatars and names
+- ✅ **Admin Entry Management** — Search, pagination, and visibility control
+- ✅ **Triage Integration** — Toggle visibility from report detail page
 
 ### 👥 User & Access Management
 - ✅ **Role-Based Access Control** — USER, TRIAGER, ADMIN roles
@@ -252,7 +264,16 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 
 ### Recently Completed
 
-**v2.4.0 (May 16, 2026)**
+**v2.5.0 (May 16, 2026)**
+- ✅ Complete Hall of Fame system with leaderboard and hacktivity
+- ✅ Time period filtering (All Time, This Month, This Year)
+- ✅ Visibility management with search and pagination
+- ✅ Auto-award points system
+- ✅ Points configuration interface
+- ✅ Title redaction for privacy
+- ✅ Edge runtime compatibility fixes
+
+**v2.4.0 (May 15, 2026)**
 - ✅ Modern table features (search, sort, pagination)
 - ✅ User management improvements
 - ✅ Search bar text color fix

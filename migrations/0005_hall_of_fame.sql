@@ -1,5 +1,10 @@
 -- Hall of Fame System Migration
 -- Creates tables for leaderboard, activity feed, and points configuration
+-- Also adds duplicate_of field to reports table for duplicate detection
+
+-- Add duplicate_of field to reports table
+ALTER TABLE reports ADD COLUMN duplicate_of TEXT;
+CREATE INDEX IF NOT EXISTS idx_reports_duplicate_of ON reports(duplicate_of);
 
 -- Points Configuration (Admin-managed)
 CREATE TABLE IF NOT EXISTS points_config (

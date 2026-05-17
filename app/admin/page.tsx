@@ -105,14 +105,14 @@ export default function AdminManagement() {
               <h2 className="text-lg font-semibold text-gray-900">Hall of Fame</h2>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Manage researcher profiles, recognition tiers, and bounty tracking.
+              Manage leaderboard, configure points per severity, and view researcher recognition.
             </p>
-            <button
-              disabled
-              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
+            <Link
+              href="/admin/hall-of-fame"
+              className="inline-block px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors"
             >
-              Coming Soon
-            </button>
+              Manage Hall of Fame →
+            </Link>
           </div>
 
           {/* Audit Logs */}

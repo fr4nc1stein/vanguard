@@ -1,0 +1,665 @@
+"use client";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface LeaderboardEntry {
+  rank: number;
+  researcherId: string;
+  researcherName: string;
+  avatarUrl: string | null;
+  totalPoints: number;
+  acceptedReports: number;
+  totalReports: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  infoCount: number;
+  firstReportAt: number | null;
+  lastReportAt: number | null;
+  id?: string;
+  isPublic?: boolean;
+}
+
+interface HallOfFameEntry {
+  id: string;
+  reportId: string;
+  researcherId: string;
+  researcherName: string;
+  avatarUrl: string | null;
+  title: string;
+  severity: string;
+  pointsAwarded: number;
+  acceptedAt: number;
+  isPublic: boolean;
+  createdAt: number;
+}
+
+interface PointsConfig {
+  id: string;
+  severity: string;
+  points: number;
+  updatedAt: number;
+  updatedBy: string;
+}
+
+interface Stats {
+  totalPointsAwarded: number;
+  totalResearchers: number;
+  totalReportsAccepted: number;
+  averagePointsPerReport: number;
+  topResearcherThisMonth: { name: string; points: number } | null;
+}
+
+interface Toast {
+  message: string;
+  type: 'success' | 'error';
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function AdminHallOfFame() {
+  const router = useRouter();
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [entries, setEntries] = useState<HallOfFameEntry[]>([]);
+  const [pointsConfigs, setPointsConfigs] = useState<PointsConfig[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [entriesSearchQuery, setEntriesSearchQuery] = useState("");
+  const [entriesPage, setEntriesPage] = useState(1);
+  const [entriesPerPage] = useState(10);
+  const [showConfigEdit, setShowConfigEdit] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<{ severity: string; points: number } | null>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  async function fetchData() {
+    try {
+      const [leaderboardRes, entriesRes, configRes, statsRes] = await Promise.all([
+        fetch('/api/admin/hall-of-fame/leaderboard'),
+        fetch('/api/admin/hall-of-fame/entries'),
+        fetch('/api/admin/hall-of-fame/settings'),
+        fetch('/api/hall-of-fame/stats'),
+      ]);
+
+      if (leaderboardRes.ok) {
+        const data = await leaderboardRes.json();
+        setLeaderboard(data.leaderboard || []);
+      }
+
+      if (entriesRes.ok) {
+        const data = await entriesRes.json();
+        setEntries(data.entries || []);
+      }
+
+      if (configRes.ok) {
+        const data = await configRes.json();
+        setPointsConfigs(data.configs || []);
+      }
+
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('[Admin Hall of Fame] Error fetching data:', error);
+      setToast({ message: 'Failed to load data', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpdatePoints() {
+    if (!editingConfig) return;
+
+    try {
+      const res = await fetch('/api/admin/hall-of-fame/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingConfig),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update points');
+      }
+
+      await fetchData();
+      setEditingConfig(null);
+      setToast({ message: 'Points configuration updated successfully!', type: 'success' });
+    } catch (error) {
+      console.error('[handleUpdatePoints] Error:', error);
+      setToast({
+        message: error instanceof Error ? error.message : 'Failed to update points',
+        type: 'error',
+      });
+    }
+  }
+
+  async function handleToggleVisibility(entryId: string, currentVisibility: boolean) {
+    try {
+      const res = await fetch(`/api/admin/hall-of-fame/${entryId}/visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isPublic: !currentVisibility,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to toggle visibility');
+      }
+
+      await fetchData();
+      setToast({
+        message: currentVisibility ? 'Entry hidden from public' : 'Entry made public',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('[handleToggleVisibility] Error:', error);
+      setToast({
+        message: error instanceof Error ? error.message : 'Failed to toggle visibility',
+        type: 'error',
+      });
+    }
+  }
+
+  const filteredLeaderboard = leaderboard.filter((entry) =>
+    entry.researcherName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredEntries = entries.filter((entry) =>
+    entry.researcherName.toLowerCase().includes(entriesSearchQuery.toLowerCase()) ||
+    entry.title.toLowerCase().includes(entriesSearchQuery.toLowerCase())
+  );
+
+  const totalEntriesPages = Math.ceil(filteredEntries.length / entriesPerPage);
+  const paginatedEntries = filteredEntries.slice(
+    (entriesPage - 1) * entriesPerPage,
+    entriesPage * entriesPerPage
+  );
+
+  const displayStats = stats || {
+    totalPointsAwarded: leaderboard.reduce((sum, r) => sum + r.totalPoints, 0),
+    totalResearchers: leaderboard.length,
+    totalReportsAccepted: leaderboard.reduce((sum, r) => sum + r.acceptedReports, 0),
+    averagePointsPerReport: 0,
+    topResearcherThisMonth: null,
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div
+            className={`px-5 py-3 rounded-lg shadow-lg ${
+              toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            } text-white font-medium`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">🏆 Hall of Fame Management</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Manage leaderboard, points configuration, and researcher recognition
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/admin')}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              ← Back to Admin
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Points Awarded</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {displayStats.totalPointsAwarded.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-3xl">🏆</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Researchers</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {displayStats.totalResearchers}
+                </p>
+              </div>
+              <div className="text-3xl">🔬</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Reports Accepted</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {displayStats.totalReportsAccepted}
+                </p>
+              </div>
+              <div className="text-3xl">📋</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Avg Points/Report</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {displayStats.averagePointsPerReport}
+                </p>
+              </div>
+              <div className="text-3xl">📊</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Points Configuration */}
+        <div className="bg-white rounded-xl border border-gray-200 mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">⚙️ Points Configuration</h2>
+              <button
+                onClick={() => setShowConfigEdit(!showConfigEdit)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {showConfigEdit ? 'Hide' : 'Edit Points'}
+              </button>
+            </div>
+          </div>
+
+          {showConfigEdit && (
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <p className="text-sm text-gray-600 mb-4">
+                Configure points awarded per severity level. Changes affect future reports only.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {pointsConfigs.map((config) => (
+                  <div key={config.severity} className="bg-white rounded-lg border border-gray-200 p-4">
+                    <label className="block text-xs font-semibold text-gray-700 uppercase mb-2">
+                      {config.severity}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10000"
+                      value={editingConfig?.severity === config.severity ? editingConfig.points : config.points}
+                      onChange={(e) =>
+                        setEditingConfig({
+                          severity: config.severity,
+                          points: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+              </div>
+              {editingConfig && (
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={handleUpdatePoints}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => setEditingConfig(null)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="px-6 py-4">
+            <div className="flex flex-wrap gap-3">
+              {pointsConfigs.map((config) => (
+                <div
+                  key={config.severity}
+                  className="px-4 py-2 bg-gray-100 rounded-lg border border-gray-200"
+                >
+                  <span className="text-xs font-semibold text-gray-700 uppercase">{config.severity}</span>
+                  <span className="ml-2 text-sm font-bold text-gray-900">{config.points} pts</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Hall of Fame Entries Management */}
+        <div className="bg-white rounded-xl border border-gray-200 mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">👁️ Manage Entry Visibility</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Toggle visibility of individual hall of fame entries. Hidden entries won't appear on the public page.
+                </p>
+              </div>
+              <div className="text-sm text-gray-500">
+                {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by researcher or report title..."
+                value={entriesSearchQuery}
+                onChange={(e) => {
+                  setEntriesSearchQuery(e.target.value);
+                  setEntriesPage(1);
+                }}
+                className="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-3 text-left">Researcher</th>
+                  <th className="px-6 py-3 text-left">Report</th>
+                  <th className="px-6 py-3 text-center">Severity</th>
+                  <th className="px-6 py-3 text-center">Points</th>
+                  <th className="px-6 py-3 text-center">Date</th>
+                  <th className="px-6 py-3 text-center">Visibility</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                      <div className="text-3xl mb-2">⏳</div>
+                      Loading entries...
+                    </td>
+                  </tr>
+                ) : entries.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                      <div className="text-3xl mb-2">�</div>
+                      No hall of fame entries yet
+                    </td>
+                  </tr>
+                ) : (
+                  entries.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {entry.avatarUrl ? (
+                            <img
+                              src={entry.avatarUrl}
+                              alt={entry.researcherName}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
+                              {entry.researcherName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-medium text-gray-900">{entry.researcherName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <a
+                          href={`/triage/reports/${entry.reportId}`}
+                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate max-w-xs block"
+                          title={entry.title}
+                        >
+                          {entry.title}
+                        </a>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
+                          entry.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                          entry.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                          entry.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          entry.severity === 'low' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {entry.severity}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="font-semibold text-gray-900">{entry.pointsAwarded}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-600">
+                        {new Date(entry.acceptedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleToggleVisibility(entry.id, entry.isPublic)}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                            entry.isPublic
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {entry.isPublic ? (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              Public
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                              </svg>
+                              Hidden
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalEntriesPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {((entriesPage - 1) * entriesPerPage) + 1} to {Math.min(entriesPage * entriesPerPage, filteredEntries.length)} of {filteredEntries.length}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEntriesPage(p => Math.max(1, p - 1))}
+                  disabled={entriesPage === 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalEntriesPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setEntriesPage(page)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                        page === entriesPage
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setEntriesPage(p => Math.min(totalEntriesPages, p + 1))}
+                  disabled={entriesPage === totalEntriesPages}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Leaderboard Table */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">📊 Leaderboard</h2>
+              <div className="text-sm text-gray-500">
+                {filteredLeaderboard.length} researcher{filteredLeaderboard.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search researchers by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-3 text-left">Rank</th>
+                  <th className="px-6 py-3 text-left">Researcher</th>
+                  <th className="px-6 py-3 text-center">Critical</th>
+                  <th className="px-6 py-3 text-center">High</th>
+                  <th className="px-6 py-3 text-center">Medium</th>
+                  <th className="px-6 py-3 text-center">Low</th>
+                  <th className="px-6 py-3 text-center">Reports</th>
+                  <th className="px-6 py-3 text-right">Points</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                      <div className="text-3xl mb-2">⏳</div>
+                      Loading leaderboard...
+                    </td>
+                  </tr>
+                ) : filteredLeaderboard.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                      <div className="text-3xl mb-2">🔍</div>
+                      {searchQuery ? 'No researchers found' : 'No researchers yet'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLeaderboard.map((entry) => (
+                    <tr key={entry.researcherId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <span className={entry.rank <= 3 ? "text-xl" : "text-gray-500 font-mono text-xs"}>
+                          {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {entry.avatarUrl ? (
+                            <img src={entry.avatarUrl} alt={entry.researcherName} className="w-8 h-8 rounded-full" />
+                          ) : (
+                            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                              {entry.researcherName[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-semibold text-gray-900">{entry.researcherName}</p>
+                            <p className="text-xs text-gray-400">{entry.researcherId}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-red-100 text-red-800 text-xs font-bold">
+                          {entry.criticalCount || '—'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-orange-100 text-orange-800 text-xs font-bold">
+                          {entry.highCount || '—'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-yellow-100 text-yellow-800 text-xs font-bold">
+                          {entry.mediumCount || '—'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-blue-100 text-blue-800 text-xs font-bold">
+                          {entry.lowCount || '—'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="font-medium text-gray-700">{entry.acceptedReports}</span>
+                        <span className="text-gray-400">/{entry.totalReports}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="font-bold text-blue-700">{entry.totalPoints.toLocaleString()}</span>
+                        <span className="text-gray-400 text-xs ml-1">pts</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
