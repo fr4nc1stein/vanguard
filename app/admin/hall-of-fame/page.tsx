@@ -69,6 +69,9 @@ export default function AdminHallOfFame() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<Toast | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [entriesSearchQuery, setEntriesSearchQuery] = useState("");
+  const [entriesPage, setEntriesPage] = useState(1);
+  const [entriesPerPage] = useState(10);
   const [showConfigEdit, setShowConfigEdit] = useState(false);
   const [editingConfig, setEditingConfig] = useState<{ severity: string; points: number } | null>(null);
 
@@ -177,6 +180,17 @@ export default function AdminHallOfFame() {
 
   const filteredLeaderboard = leaderboard.filter((entry) =>
     entry.researcherName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredEntries = entries.filter((entry) =>
+    entry.researcherName.toLowerCase().includes(entriesSearchQuery.toLowerCase()) ||
+    entry.title.toLowerCase().includes(entriesSearchQuery.toLowerCase())
+  );
+
+  const totalEntriesPages = Math.ceil(filteredEntries.length / entriesPerPage);
+  const paginatedEntries = filteredEntries.slice(
+    (entriesPage - 1) * entriesPerPage,
+    entriesPage * entriesPerPage
   );
 
   const displayStats = stats || {
@@ -352,10 +366,36 @@ export default function AdminHallOfFame() {
         {/* Hall of Fame Entries Management */}
         <div className="bg-white rounded-xl border border-gray-200 mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">👁️ Manage Entry Visibility</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Toggle visibility of individual hall of fame entries. Hidden entries won't appear on the public page.
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">👁️ Manage Entry Visibility</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Toggle visibility of individual hall of fame entries. Hidden entries won't appear on the public page.
+                </p>
+              </div>
+              <div className="text-sm text-gray-500">
+                {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by researcher or report title..."
+                value={entriesSearchQuery}
+                onChange={(e) => {
+                  setEntriesSearchQuery(e.target.value);
+                  setEntriesPage(1);
+                }}
+                className="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -405,9 +445,13 @@ export default function AdminHallOfFame() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 truncate max-w-xs" title={entry.title}>
+                        <a
+                          href={`/triage/reports/${entry.reportId}`}
+                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate max-w-xs block"
+                          title={entry.title}
+                        >
                           {entry.title}
-                        </div>
+                        </a>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
@@ -459,6 +503,46 @@ export default function AdminHallOfFame() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalEntriesPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {((entriesPage - 1) * entriesPerPage) + 1} to {Math.min(entriesPage * entriesPerPage, filteredEntries.length)} of {filteredEntries.length}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEntriesPage(p => Math.max(1, p - 1))}
+                  disabled={entriesPage === 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalEntriesPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setEntriesPage(page)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                        page === entriesPage
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setEntriesPage(p => Math.min(totalEntriesPages, p + 1))}
+                  disabled={entriesPage === totalEntriesPages}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Leaderboard Table */}
