@@ -1,13 +1,16 @@
 # Vanguard VDP
 
-A HackerOne-style vulnerability disclosure platform. Security researchers sign in, submit encrypted reports, and track resolution status. Staff triage reports through a role-protected admin panel.
+A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
-**Live:** https://vanguard.laet4x.com
+**Live:** https://vanguard-vdp.fr4nc1stein.workers.dev  
+**Version:** v2.4.0  
+**Status:** ✅ Production Ready
 
 ## Documentation
 
 | Doc | Description |
 |-----|-------------|
+| [CHANGELOG.md](CHANGELOG.md) | Version history and feature releases |
 | [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) | Full deployment, Cloudflare/Clerk/Google setup, common fixes |
 | [docs/ROLE_SETUP_INSTRUCTIONS.md](docs/ROLE_SETUP_INSTRUCTIONS.md) | How to assign ADMIN/TRIAGER roles in Clerk |
 | [docs/blueprint.md](docs/blueprint.md) | Architecture, data model, API surface, security design |
@@ -28,19 +31,74 @@ A HackerOne-style vulnerability disclosure platform. Security researchers sign i
 | Styling | Tailwind CSS v4 |
 | Validation | Zod v4 |
 
-## Features
+## ✅ Deployed Features
 
-### Core Features
-- **Submit reports** — authenticated, AES-GCM-256 encrypted, stored in D1
-- **Researcher dashboard** — list own submissions with status badges (detail view and comments not yet built)
-- **Triage workflow** (`/triage`) — role-gated (TRIAGER/ADMIN), full audit log, status management
-- **Hall of Fame** — public recognition of accepted researchers
-- **Security policy** — responsible disclosure guidelines and in-scope targets
+### 🔐 Core Platform Features
+- ✅ **Report Submission** — AES-GCM-256 encrypted, authenticated users only
+- ✅ **Researcher Dashboard** — View own submissions with status tracking
+- ✅ **Report Detail View** — Full report viewing with markdown support
+- ✅ **Comments System** — Two-way communication between researchers and triage team
+- ✅ **Triage Workflow** — Complete report lifecycle management
+- ✅ **Hall of Fame** — Public recognition of accepted researchers
+- ✅ **Security Policy** — Responsible disclosure guidelines and scope
 
-### Admin Features (Phase 1 - Completed)
-- **User Management** (`/admin/users`) — list all Clerk users, promote/demote roles (USER ↔ TRIAGER ↔ ADMIN)
-- **Scope Management** (`/admin/scope`) — dynamically manage in-scope targets (add/edit/delete)
-- **Route Separation** — `/triage` for report workflow, `/admin` for platform management
+### 👥 User & Access Management
+- ✅ **Role-Based Access Control** — USER, TRIAGER, ADMIN roles
+- ✅ **User Management** (`/admin/users`) — List, search, sort, and manage user roles
+- ✅ **Role Promotion** — Promote users to TRIAGER with confirmation dialogs
+- ✅ **Safe ADMIN Management** — ADMIN role changes require manual Clerk access
+- ✅ **Clerk Integration** — Seamless authentication with user profiles
+
+### 🎯 Scope & Target Management
+- ✅ **Scope Management** (`/admin/scope`) — Add, edit, delete in-scope targets
+- ✅ **Target Types** — Web App, API, Mobile, Infrastructure
+- ✅ **Status Tracking** — Active, Deprecated, Out of Scope
+- ✅ **Dynamic Scope** — No hardcoded targets, fully database-driven
+
+### 📊 Analytics & Reporting
+- ✅ **Analytics Dashboard** (`/admin/analytics`) — Comprehensive metrics and insights
+- ✅ **Summary Statistics** — Total reports, recent activity, response times
+- ✅ **Data Visualizations** — Severity/status distributions, trends over time
+- ✅ **Top Reporters** — Leaderboard with Clerk user names
+- ✅ **Top Targets** — Most reported assets
+- ✅ **CSV Export** — Export analytics data for compliance
+- ✅ **Date Range Selector** — 7, 30, 90, or 365 days
+
+### 🔍 Modern Table Features (v2.4.0)
+All data tables include:
+- ✅ **Search** — Real-time filtering across multiple fields
+- ✅ **Column Sorting** — Click headers to sort ascending/descending
+- ✅ **Pagination** — Smart pagination with 20-25 items per page
+- ✅ **Result Counts** — Shows filtered/total results
+- ✅ **Responsive Design** — Mobile and desktop optimized
+
+**Tables Enhanced:**
+- Researcher Dashboard (`/dashboard`)
+- Triage Dashboard (`/triage`)
+- User Management (`/admin/users`)
+- Scope Management (`/admin/scope`)
+
+### 🛡️ Security & Audit
+- ✅ **End-to-End Encryption** — AES-GCM-256 for report bodies
+- ✅ **Audit Logging** — Complete activity tracking for all report actions
+- ✅ **Role-Based Permissions** — Middleware-enforced access control
+- ✅ **Secure Decryption** — Staff and report owners can decrypt
+- ✅ **Clean Audit Logs** — Only meaningful actions logged
+
+### 💬 Communication Features
+- ✅ **Comments System** — Researchers and staff can communicate
+- ✅ **Role Badges** — Visual indicators for USER/TRIAGER/ADMIN
+- ✅ **Timestamps** — All comments timestamped
+- ✅ **Markdown Support** — Rich text formatting in report descriptions
+- ✅ **Activity Timeline** — Complete history of report changes
+
+### 🎨 UI/UX Enhancements
+- ✅ **Toast Notifications** — Success/error feedback
+- ✅ **Confirmation Dialogs** — Prevent accidental actions
+- ✅ **Status Badges** — Color-coded report statuses
+- ✅ **Severity Indicators** — Visual severity classification
+- ✅ **Responsive Tables** — Mobile-friendly data views
+- ✅ **Loading States** — Smooth transitions and feedback
 
 ## Getting Started
 
@@ -138,47 +196,79 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 # Also safe to remove: [[r2_buckets]] block in wrangler.toml
 ```
 
-## Roadmap
+## 🚀 Roadmap
 
-Features that are planned or partially built but not yet complete.
+### Planned Features
 
-### My Reports (Researcher Dashboard)
+**Advanced Reporting & Analytics**
+- [ ] Export filtered/sorted table data to CSV
+- [ ] Custom date range analytics
+- [ ] Report templates
+- [ ] Automated weekly/monthly reports
 
-- **Report listing works** — authenticated researchers can see a list of their own submissions with status badges
-- **Report detail view not built** — clicking a report does not open a detail page; researchers cannot view the full contents of their own submission
-- **Researcher comments not built** — researchers cannot post follow-up comments or replies on their own reports (e.g. to provide additional PoC details or respond to a triager)
+**Notification System**
+- [ ] Email notifications for report status changes
+- [ ] In-app notification center
+- [ ] Webhook integrations for external tools
+- [ ] Slack/Discord notifications
 
-### Admin Panel
+**Enhanced Collaboration**
+- [ ] Internal notes on reports (staff-only)
+- [ ] @mentions in comments
+- [ ] Report assignment notifications
+- [ ] Team activity feed
 
-- **Report listing not working** — researchers can submit reports but the admin panel does not yet list them correctly; the listing view is broken/incomplete
-- **Triage actions not wired up** — status changes (accept, reject, close, duplicate) are present in the UI but not fully functional end-to-end
-- **Report detail view** — admin `/admin/reports/[id]` page needs polish and working triage actions
-- **Add/manage scope targets** — admins should be able to add, edit, and remove in-scope targets (currently hardcoded in `lib/validation.ts` and `app/submit/page.tsx`)
-- **Severity classification** — allow admins to set a severity level (Critical / High / Medium / Low / Informational) when triaging
-- **Bounty/reward tracking** — record and display reward amounts tied to resolved reports
-- **Researcher communication** — ability to leave comments or send messages to the submitting researcher directly from the admin panel
-- **Bulk actions** — mark multiple reports at once (e.g. bulk close, bulk assign)
-- **Assign to triager** — assign a specific report to a named triager for ownership
-- **CVE / advisory linking** — attach a CVE ID or public advisory URL to a resolved report
-- **Export** — download reports as CSV or JSON for audit purposes
-- **Dashboard stats** — summary cards (open, in-progress, resolved, bounties paid) on the admin home page
+**Security & Compliance**
+- [ ] Two-factor authentication
+- [ ] Audit log export
+- [ ] GDPR compliance tools
+- [ ] Data retention policies
 
-### TRIAGER Role
+**Researcher Experience**
+- [ ] Report drafts (save before submit)
+- [ ] Duplicate detection
+- [ ] Report templates for common vulnerabilities
+- [ ] Submission wizard/guide
 
-- Role is defined and enforced in middleware but the TRIAGER-specific permission boundaries are not implemented — currently TRIAGER and ADMIN have identical access
-- Intended scope: TRIAGERs can view and comment on reports, but cannot change status to `resolved` or `closed`, and cannot modify scope or settings
+**Triage Workflow**
+- [ ] Bulk actions (assign/close multiple reports)
+- [ ] Custom report labels/tags
+- [ ] Saved filters
+- [ ] Quick actions menu
+- [ ] Bounty/reward tracking
+- [ ] CVE/advisory linking
 
-### Hall of Fame
+**Integration & API**
+- [ ] Public API for researchers
+- [ ] Jira/GitHub issue integration
+- [ ] Custom webhooks
+- [ ] API documentation
 
-- Currently static/sample data — real accepted researcher entries are not pulled from the database
-- Should be populated automatically when a report is marked `accepted` or `resolved` by an admin
-- Researcher handle, submission date, and optionally the CVE/advisory link should appear
+**Dashboard Enhancements**
+- [ ] Customizable widgets
+- [ ] Real-time updates (WebSocket)
+- [ ] Dark mode
+- [ ] Keyboard shortcuts
 
-### General UI
+### Recently Completed
 
-- Admin panel needs visual polish — table layout, pagination, and filter/search by status, severity, and date
-- Mobile layout improvements on the admin panel and report detail page
-- Email notifications to researchers when their report status changes
+**v2.4.0 (May 16, 2026)**
+- ✅ Modern table features (search, sort, pagination)
+- ✅ User management improvements
+- ✅ Search bar text color fix
+- ✅ Audit log cleanup
+
+**v2.3.0 (May 15, 2026)**
+- ✅ Analytics dashboard
+- ✅ Comments system
+- ✅ Markdown rendering
+- ✅ Report detail views
+
+**v2.2.0 and earlier**
+- ✅ Core platform features
+- ✅ Role-based access control
+- ✅ Scope management
+- ✅ Triage workflow
 
 ## License
 
