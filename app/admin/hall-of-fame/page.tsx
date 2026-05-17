@@ -23,6 +23,20 @@ interface LeaderboardEntry {
   isPublic?: boolean;
 }
 
+interface HallOfFameEntry {
+  id: string;
+  reportId: string;
+  researcherId: string;
+  researcherName: string;
+  avatarUrl: string | null;
+  title: string;
+  severity: string;
+  pointsAwarded: number;
+  acceptedAt: number;
+  isPublic: boolean;
+  createdAt: number;
+}
+
 interface PointsConfig {
   id: string;
   severity: string;
@@ -49,6 +63,7 @@ interface Toast {
 export default function AdminHallOfFame() {
   const router = useRouter();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [entries, setEntries] = useState<HallOfFameEntry[]>([]);
   const [pointsConfigs, setPointsConfigs] = useState<PointsConfig[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,8 +85,9 @@ export default function AdminHallOfFame() {
 
   async function fetchData() {
     try {
-      const [leaderboardRes, configRes, statsRes] = await Promise.all([
+      const [leaderboardRes, entriesRes, configRes, statsRes] = await Promise.all([
         fetch('/api/admin/hall-of-fame/leaderboard'),
+        fetch('/api/admin/hall-of-fame/entries'),
         fetch('/api/admin/hall-of-fame/settings'),
         fetch('/api/hall-of-fame/stats'),
       ]);
@@ -79,6 +95,11 @@ export default function AdminHallOfFame() {
       if (leaderboardRes.ok) {
         const data = await leaderboardRes.json();
         setLeaderboard(data.leaderboard || []);
+      }
+
+      if (entriesRes.ok) {
+        const data = await entriesRes.json();
+        setEntries(data.entries || []);
       }
 
       if (configRes.ok) {
@@ -328,14 +349,83 @@ export default function AdminHallOfFame() {
                       Loading entries...
                     </td>
                   </tr>
-                ) : (
+                ) : entries.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
-                      <div className="text-3xl mb-2">🚧</div>
-                      <p className="text-sm">Entry management coming soon</p>
-                      <p className="text-xs text-gray-500 mt-1">Use API endpoint: PATCH /api/admin/hall-of-fame/[id]/visibility</p>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                      <div className="text-3xl mb-2">�</div>
+                      No hall of fame entries yet
                     </td>
                   </tr>
+                ) : (
+                  entries.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {entry.avatarUrl ? (
+                            <img
+                              src={entry.avatarUrl}
+                              alt={entry.researcherName}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
+                              {entry.researcherName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-medium text-gray-900">{entry.researcherName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 truncate max-w-xs" title={entry.title}>
+                          {entry.title}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
+                          entry.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                          entry.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                          entry.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          entry.severity === 'low' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {entry.severity}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="font-semibold text-gray-900">{entry.pointsAwarded}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-600">
+                        {new Date(entry.acceptedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => handleToggleVisibility(entry.id, entry.isPublic)}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                            entry.isPublic
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {entry.isPublic ? (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              Public
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                              </svg>
+                              Hidden
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
