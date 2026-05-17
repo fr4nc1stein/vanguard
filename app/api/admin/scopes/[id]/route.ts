@@ -49,12 +49,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Scope not found' }, { status: 404 });
     }
 
+    // Build update object with proper field mapping
+    const updateData: Record<string, any> = {
+      updatedAt: Date.now(),
+    };
+    
+    if (data.domain !== undefined) updateData.domain = data.domain;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.targetType !== undefined) updateData.targetType = data.targetType;
+    if (data.status !== undefined) updateData.status = data.status;
+
     // Update scope
     await db.update(scopes)
-      .set({
-        ...data,
-        updatedAt: Date.now(),
-      })
+      .set(updateData)
       .where(eq(scopes.id, id));
 
     const updated = await db.select().from(scopes).where(eq(scopes.id, id)).get();
