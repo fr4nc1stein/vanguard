@@ -357,10 +357,16 @@ export async function getLeaderboard(limit: number = 100) {
       .limit(limit)
       .all();
 
-    // Add avatars from Clerk
+    // Add avatars from Clerk (with error handling)
     const leaderboardWithAvatars = await Promise.all(
       leaders.map(async (leader, index) => {
-        const avatarUrl = await fetchResearcherAvatar(leader.researcherId);
+        let avatarUrl = null;
+        try {
+          avatarUrl = await fetchResearcherAvatar(leader.researcherId);
+        } catch (err) {
+          // Silently fail avatar fetch, will use initials fallback
+          console.warn(`[getLeaderboard] Failed to fetch avatar for ${leader.researcherId}:`, err);
+        }
         return {
           rank: index + 1,
           researcherId: leader.researcherId,
@@ -403,10 +409,16 @@ export async function getHacktivity(limit: number = 100) {
       .limit(limit)
       .all();
 
-    // Add avatars from Clerk
+    // Add avatars from Clerk (with error handling)
     const activitiesWithAvatars = await Promise.all(
       activities.map(async (activity) => {
-        const avatarUrl = await fetchResearcherAvatar(activity.researcherId);
+        let avatarUrl = null;
+        try {
+          avatarUrl = await fetchResearcherAvatar(activity.researcherId);
+        } catch (err) {
+          // Silently fail avatar fetch, will use initials fallback
+          console.warn(`[getHacktivity] Failed to fetch avatar for ${activity.researcherId}:`, err);
+        }
         return {
           ...activity,
           avatarUrl,
