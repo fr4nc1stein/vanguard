@@ -181,6 +181,38 @@ export default function AdminReportDetail() {
     }
   }
 
+  async function handleToggleVisibility() {
+    if (!hallOfFameEntry) return;
+    setTogglingVisibility(true);
+
+    try {
+      const res = await fetch(`/api/admin/hall-of-fame/${hallOfFameEntry.id}/visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isPublic: !hallOfFameEntry.isPublic,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to toggle visibility');
+      }
+
+      // Update local state
+      setHallOfFameEntry({
+        ...hallOfFameEntry,
+        isPublic: !hallOfFameEntry.isPublic,
+      });
+
+      alert(hallOfFameEntry.isPublic ? 'Entry hidden from public' : 'Entry made public');
+    } catch (e: unknown) {
+      alert((e as Error).message);
+    } finally {
+      setTogglingVisibility(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50">
