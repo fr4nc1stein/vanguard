@@ -1,5 +1,183 @@
 # Changelog
 
+## Modern Table Features & UI Improvements - v2.4.0
+
+**Date:** May 16, 2026  
+**Status:** ✅ Deployed to production  
+**Version ID:** `199a2034-6bc2-4771-a930-aad19f6819de`
+
+---
+
+### 🎯 Modern Data Table Implementation
+
+Implemented comprehensive table features across all data tables in the platform, providing a modern, user-friendly experience for managing and viewing data.
+
+#### Tables Enhanced (4 Total)
+
+**1. Researcher Dashboard (`/dashboard`)**
+- ✅ Search: Reference ID, title, target, severity, status
+- ✅ Sort: All columns (Reference, Title, Target, Severity, Status, Submitted Date)
+- ✅ Pagination: 25 items per page (client-side)
+- Real-time filtering as you type
+- Result count display
+
+**2. Triage Dashboard (`/triage`)**
+- ✅ Search: Title, target, ref ID (already existed)
+- ✅ Filter: Status, severity (already existed)
+- ✅ Sort: All columns - Ref, Title, Target, Severity, Status, Assigned, Date (NEW)
+- ✅ Pagination: 20 items per page (server-side, already existed)
+- Enhanced with column sorting
+
+**3. User Management (`/admin/users`)**
+- ✅ Search: Name, email, username, role
+- ✅ Sort: User, Email, Role, Joined Date, Last Sign In
+- ✅ Pagination: 25 items per page (client-side)
+- Smart display name handling
+- Null value handling for sorting
+
+**4. Scope Management (`/admin/scope`)**
+- ✅ Search: Domain, description, type, status
+- ✅ Sort: Domain, Description, Type, Status, Added Date
+- ✅ Pagination: 25 items per page (client-side)
+- Real-time filtering
+- Result count display
+
+#### Features Implemented
+
+**Search Functionality**
+- Real-time filtering as you type
+- Search across multiple fields per table
+- Shows result count when searching
+- Resets to page 1 on new search
+- Clean search bar with icon
+- Proper text color (black on white)
+
+**Column Sorting**
+- Click any column header to sort
+- Toggle ascending/descending
+- Visual indicators: ↑ (ascending), ↓ (descending), ↕ (sortable)
+- Hover effects on sortable columns
+- Smart null value handling
+- Case-insensitive string comparison
+- Works with pagination and search
+
+**Pagination**
+- Reusable Pagination component (`app/components/Pagination.tsx`)
+- Smart page number display with ellipsis (1 ... 5 6 7 ... 20)
+- Responsive design (mobile and desktop views)
+- "Showing X to Y of Z results" text
+- Previous/Next buttons with disabled states
+- Active page highlighting
+- Auto-hides when only 1 page
+- Integrates seamlessly with search and sort
+
+**Integration**
+- All features work together seamlessly
+- Search + Sort + Pagination integrated
+- Pagination updates based on filtered/sorted results
+- Sort state persists across pages
+- Clean, modern UI consistent across all tables
+
+#### Technical Implementation
+
+**Component Created**
+- `app/components/Pagination.tsx` - Reusable pagination component
+  - Props: currentPage, totalPages, onPageChange, itemsPerPage, totalItems
+  - Responsive design
+  - Accessible with ARIA labels
+  - Smart page number algorithm
+
+**Files Modified**
+- `app/dashboard/page.tsx` - Added search, sort, pagination
+- `app/triage/page.tsx` - Added column sorting
+- `app/admin/users/page.tsx` - Added search, sort, pagination
+- `app/admin/scope/page.tsx` - Added search, sort, pagination
+
+**Code Pattern**
+```typescript
+// Search and filter
+const filteredItems = items.filter(item => {
+  if (!searchQuery) return true;
+  return /* search logic */;
+});
+
+// Sorting
+const sortedItems = [...filteredItems].sort((a, b) => {
+  if (!sortField) return 0;
+  // sort logic with null handling
+});
+
+// Pagination
+const paginatedItems = sortedItems.slice(startIndex, endIndex);
+```
+
+---
+
+### 🔐 User Management Improvements
+
+**Role Management Enhancements**
+- Removed ADMIN demotion button
+  - ADMIN role changes must be done manually in Clerk
+  - Shows "Manage in Clerk" text for ADMIN users
+  - Prevents accidental demotion of administrators
+
+**Confirmation & Notifications**
+- Added ConfirmDialog for USER → TRIAGER promotion
+  - Shows user's name in confirmation message
+  - Explains what TRIAGER role grants
+  - Prevents accidental promotions
+- Replaced native `alert()` with Toast component
+  - Success toast when role updated
+  - Error toast when update fails
+  - Better UX with styled notifications
+
+---
+
+### 🐛 Bug Fixes
+
+**Search Bar Text Color**
+- Fixed search input text color from white to black
+- Added `text-gray-900` class to all search inputs
+- Improved visibility and UX
+
+**Audit Log Cleanup**
+- Removed automatic "Report body decrypted (staff)" entries
+- Reduced noise in activity logs
+- Activity log now shows only meaningful actions:
+  - Status changes
+  - Severity adjustments
+  - Report assignments
+  - Comments from triage actions
+
+---
+
+### 📊 Summary of Changes
+
+**New Features**
+- ✅ Pagination across all tables (4 tables)
+- ✅ Search functionality (4 tables)
+- ✅ Column sorting (4 tables)
+- ✅ Reusable Pagination component
+- ✅ Enhanced user management with confirmations
+
+**Improvements**
+- ✅ Better UX with Toast notifications
+- ✅ Safer role management (no ADMIN demotion)
+- ✅ Cleaner audit logs
+- ✅ Consistent table experience across platform
+
+**Bug Fixes**
+- ✅ Search bar text color visibility
+- ✅ Audit log noise reduction
+
+**Files Changed**
+- 5 files created/modified for table features
+- 1 new reusable component (Pagination)
+- 4 table pages enhanced
+- Total: ~500+ lines of code added
+
+---
+
 ## Analytics Dashboard & Communication System - v2.3.0
 
 **Date:** May 15, 2026  
