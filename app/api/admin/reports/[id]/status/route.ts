@@ -141,6 +141,21 @@ export async function PATCH(
       }
     }
 
+    // Update hacktivity action if status changed from accepted to fixed
+    if (currentStatus === 'accepted' && newStatus === 'fixed') {
+      try {
+        const { hacktivity } = await import('@/lib/db/schema');
+        const { eq } = await import('drizzle-orm');
+        await db.update(hacktivity)
+          .set({ action: 'resolved' })
+          .where(eq(hacktivity.reportId, report.id));
+        console.log(`[Hacktivity] Updated action to 'resolved' for report ${report.id}`);
+      } catch (error) {
+        console.error('[Hacktivity Update] Exception:', error);
+        // Continue even if hacktivity update fails
+      }
+    }
+
     return NextResponse.json({ success: true, status: newStatus });
   } catch (err) {
     if (err instanceof Response) return err;
