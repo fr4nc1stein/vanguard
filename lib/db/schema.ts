@@ -60,10 +60,65 @@ export const comments = sqliteTable('comments', {
   createdAt:  integer('created_at').notNull(),
 });
 
+// ── Points Configuration (Admin-managed) ─────────────────────────────────────
+export const pointsConfig = sqliteTable('points_config', {
+  id:        text('id').primaryKey(),
+  severity:  text('severity').notNull().unique(),
+  points:    integer('points').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  updatedBy: text('updated_by').notNull(),
+});
+
+// ── Researcher Stats (Auto-calculated) ───────────────────────────────────────
+export const researcherStats = sqliteTable('researcher_stats', {
+  researcherId:    text('researcher_id').primaryKey(),
+  researcherName:  text('researcher_name').notNull(),
+  totalPoints:     integer('total_points').notNull().default(0),
+  totalReports:    integer('total_reports').notNull().default(0),
+  acceptedReports: integer('accepted_reports').notNull().default(0),
+  criticalCount:   integer('critical_count').notNull().default(0),
+  highCount:       integer('high_count').notNull().default(0),
+  mediumCount:     integer('medium_count').notNull().default(0),
+  lowCount:        integer('low_count').notNull().default(0),
+  infoCount:       integer('info_count').notNull().default(0),
+  firstReportAt:   integer('first_report_at'),
+  lastReportAt:    integer('last_report_at'),
+  updatedAt:       integer('updated_at').notNull(),
+});
+
+// ── Hall of Fame Entries (Public recognition) ────────────────────────────────
+export const hallOfFame = sqliteTable('hall_of_fame', {
+  id:             text('id').primaryKey(),
+  reportId:       text('report_id').notNull().unique(),
+  researcherId:   text('researcher_id').notNull(),
+  researcherName: text('researcher_name').notNull(),
+  title:          text('title').notNull(),
+  severity:       text('severity').notNull(),
+  pointsAwarded:  integer('points_awarded').notNull(),
+  acceptedAt:     integer('accepted_at').notNull(),
+  isPublic:       integer('is_public').notNull().default(1),
+  createdAt:      integer('created_at').notNull(),
+});
+
+// ── Activity Feed (Hacktivity) ───────────────────────────────────────────────
+export const hacktivity = sqliteTable('hacktivity', {
+  id:             text('id').primaryKey(),
+  reportId:       text('report_id').notNull(),
+  researcherId:   text('researcher_id').notNull(),
+  researcherName: text('researcher_name').notNull(),
+  action:         text('action').notNull(),
+  title:          text('title').notNull(),
+  severity:       text('severity').notNull(),
+  points:         integer('points'),
+  timestamp:      integer('timestamp').notNull(),
+});
+
 // ── Relations ─────────────────────────────────────────────────────────────────
 export const reportsRelations = relations(reports, ({ many }) => ({
   auditLogs: many(auditLogs),
   comments: many(comments),
+  hallOfFame: many(hallOfFame),
+  hacktivity: many(hacktivity),
 }));
 
 export const commentsRelations = relations(comments, ({ one }) => ({
@@ -80,17 +135,39 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   }),
 }));
 
-// ── Inferred Types ────────────────────────────────────────────────────────────
-export type Report        = typeof reports.$inferSelect;
-export type NewReport     = typeof reports.$inferInsert;
-export type AuditLog      = typeof auditLogs.$inferSelect;
-export type NewAuditLog   = typeof auditLogs.$inferInsert;
-export type Scope         = typeof scopes.$inferSelect;
-export type NewScope      = typeof scopes.$inferInsert;
-export type Comment       = typeof comments.$inferSelect;
-export type NewComment    = typeof comments.$inferInsert;
+export const hallOfFameRelations = relations(hallOfFame, ({ one }) => ({
+  report: one(reports, {
+    fields: [hallOfFame.reportId],
+    references: [reports.id],
+  }),
+}));
 
-export type ReportStatus = 'new' | 'triaged' | 'accepted' | 'rejected' | 'fixed' | 'informational';
+export const hacktivityRelations = relations(hacktivity, ({ one }) => ({
+  report: one(reports, {
+    fields: [hacktivity.reportId],
+    references: [reports.id],
+  }),
+}));
+
+// ── Inferred Types ────────────────────────────────────────────────────────────
+export type Report           = typeof reports.$inferSelect;
+export type NewReport        = typeof reports.$inferInsert;
+export type AuditLog         = typeof auditLogs.$inferSelect;
+export type NewAuditLog      = typeof auditLogs.$inferInsert;
+export type Scope            = typeof scopes.$inferSelect;
+export type NewScope         = typeof scopes.$inferInsert;
+export type Comment          = typeof comments.$inferSelect;
+export type NewComment       = typeof comments.$inferInsert;
+export type PointsConfig     = typeof pointsConfig.$inferSelect;
+export type NewPointsConfig  = typeof pointsConfig.$inferInsert;
+export type ResearcherStats  = typeof researcherStats.$inferSelect;
+export type NewResearcherStats = typeof researcherStats.$inferInsert;
+export type HallOfFame       = typeof hallOfFame.$inferSelect;
+export type NewHallOfFame    = typeof hallOfFame.$inferInsert;
+export type Hacktivity       = typeof hacktivity.$inferSelect;
+export type NewHacktivity    = typeof hacktivity.$inferInsert;
+
+export type ReportStatus = 'new' | 'triaged' | 'accepted' | 'rejected' | 'fixed' | 'informational' | 'duplicate';
 export type Severity     = 'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
 export type UserRole     = 'USER' | 'TRIAGER' | 'ADMIN';
 export type TargetType   = 'web_app' | 'api' | 'mobile' | 'infrastructure';
