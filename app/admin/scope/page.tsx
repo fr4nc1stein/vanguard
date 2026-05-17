@@ -5,6 +5,7 @@ import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import Toast from "../../components/Toast";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Pagination from "../../components/Pagination";
 
 interface Scope {
   id: string;
@@ -44,10 +45,18 @@ export default function ScopeManagement() {
   });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; domain: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   useEffect(() => {
     fetchScopes();
   }, []);
+
+  // Pagination logic
+  const totalPages = Math.ceil(scopes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedScopes = scopes.slice(startIndex, endIndex);
 
   async function fetchScopes() {
     setLoading(true);
@@ -236,7 +245,7 @@ export default function ScopeManagement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {scopes.map((scope) => (
+                  {paginatedScopes.map((scope) => (
                     <tr key={scope.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <p className="font-mono text-sm text-gray-900">{scope.domain}</p>
@@ -277,6 +286,13 @@ export default function ScopeManagement() {
                   ))}
                 </tbody>
               </table>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={scopes.length}
+              />
             </div>
           )}
         </div>

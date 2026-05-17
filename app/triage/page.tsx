@@ -4,6 +4,7 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import ReportStatusBadge from "../components/ReportStatusBadge";
+import Pagination from "../components/Pagination";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Stats {
@@ -264,27 +265,13 @@ export default function AdminDashboard() {
 
           {/* Pagination */}
           {meta.pages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 text-sm text-gray-500">
-              <span>
-                Showing {(meta.page - 1) * meta.per_page + 1}–{Math.min(meta.page * meta.per_page, meta.total)} of {meta.total}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={meta.page === 1}
-                  className="px-3 py-1 border border-gray-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors"
-                >
-                  ← Prev
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(meta.pages, p + 1))}
-                  disabled={meta.page === meta.pages}
-                  className="px-3 py-1 border border-gray-300 rounded-lg text-xs font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors"
-                >
-                  Next →
-                </button>
-              </div>
-            </div>
+            <Pagination
+              currentPage={meta.page}
+              totalPages={meta.pages}
+              onPageChange={setPage}
+              itemsPerPage={meta.per_page}
+              totalItems={meta.total}
+            />
           )}
         </div>
       </div>

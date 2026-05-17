@@ -4,6 +4,7 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import ReportStatusBadge from "../components/ReportStatusBadge";
+import Pagination from "../components/Pagination";
 
 interface OwnReport {
   id:          string;
@@ -31,6 +32,8 @@ export default function DashboardPage() {
   const [reports, setReports] = useState<OwnReport[]>([]);
   const [loading, setLoading]  = useState(true);
   const [error,   setError]    = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   useEffect(() => {
     fetch("/api/reports")
@@ -39,6 +42,12 @@ export default function DashboardPage() {
       .catch(() => setError("Failed to load your reports."))
       .finally(() => setLoading(false));
   }, []);
+
+  // Pagination logic
+  const totalPages = Math.ceil(reports.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReports = reports.slice(startIndex, endIndex);
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col">
@@ -96,7 +105,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {reports.map(r => (
+                {paginatedReports.map(r => (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-4">
                       <span className="font-mono text-xs text-blue-600 font-semibold">{r.refId}</span>
@@ -126,6 +135,13 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              totalItems={reports.length}
+            />
           </div>
         )}
       </div>
