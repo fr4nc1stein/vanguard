@@ -2,7 +2,7 @@
 
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
-**Live:** https://vanguard-vdp.fr4nc1stein.workers.dev  
+**Live:** https://vanguard.laet4x.com  
 **Version:** v2.5.0  
 **Status:** ✅ Production Ready
 
