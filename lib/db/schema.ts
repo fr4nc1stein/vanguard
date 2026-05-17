@@ -20,6 +20,7 @@ export const reports = sqliteTable('reports', {
   pocFiles:       text('poc_files').notNull().default('[]'),
   clerkUserId:    text('clerk_user_id'),
   ipHash:         text('ip_hash'),
+  duplicateOf:    text('duplicate_of'), // Reference to original report ID
   submittedAt:    integer('submitted_at').notNull(),
   updatedAt:      integer('updated_at').notNull(),
 });

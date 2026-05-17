@@ -16,16 +16,18 @@ import { reports } from '@/lib/db/schema';
 import { requireRole, getSessionEmail } from '@/lib/auth';
 import { TriageUpdateSchema } from '@/lib/validation';
 import { logAudit } from '@/lib/audit';
+import { awardPoints } from '@/lib/services/hall-of-fame';
 import type { ReportStatus } from '@/lib/db/schema';
 
 // What each role can transition to
 const ALLOWED_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
-  new:           ['triaged', 'rejected', 'informational'],
-  triaged:       ['accepted', 'rejected', 'informational'],
+  new:           ['triaged', 'rejected', 'informational', 'duplicate'],
+  triaged:       ['accepted', 'rejected', 'informational', 'duplicate'],
   accepted:      ['fixed', 'rejected'],
   rejected:      ['accepted', 'triaged'],
   fixed:         [],
   informational: ['triaged', 'new'], // Allow reopening informational reports
+  duplicate:     ['triaged', 'new'], // Allow reopening duplicates
 };
 
 export async function PATCH(
@@ -121,6 +123,37 @@ export async function PATCH(
         newValue:   update.assignedTo,
         ipAddress:  clientIp,
       });
+    }
+
+    // Auto-award points if status changed to accepted or fixed
+    if (currentStatus !== newStatus && (newStatus === 'accepted' || newStatus === 'fixed')) {
+      try {
+        const awardResult = await awardPoints(report.id, userId);
+        if (awardResult.success) {
+          console.log(`[Auto-Award] ${awardResult.message}`);
+        } else if (awardResult.error) {
+          console.error(`[Auto-Award] Error: ${awardResult.error}`);
+        }
+        // Don't fail the request if point award fails
+      } catch (error) {
+        console.error('[Auto-Award] Exception:', error);
+        // Continue even if point award fails
+      }
+    }
+
+    // Update hacktivity action if status changed from accepted to fixed
+    if (currentStatus === 'accepted' && newStatus === 'fixed') {
+      try {
+        const { hacktivity } = await import('@/lib/db/schema');
+        const { eq } = await import('drizzle-orm');
+        await db.update(hacktivity)
+          .set({ action: 'resolved' })
+          .where(eq(hacktivity.reportId, report.id));
+        console.log(`[Hacktivity] Updated action to 'resolved' for report ${report.id}`);
+      } catch (error) {
+        console.error('[Hacktivity Update] Exception:', error);
+        // Continue even if hacktivity update fails
+      }
     }
 
     return NextResponse.json({ success: true, status: newStatus });

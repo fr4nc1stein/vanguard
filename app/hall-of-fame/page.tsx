@@ -1,83 +1,69 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface Researcher {
-  handle: string;
-  country: string;
-  reports: number;
-  accepted: number;
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-  info: number;
-  points: number;
-  since: string;
+interface LeaderboardEntry {
+  rank: number;
+  researcherId: string;
+  researcherName: string;
+  avatarUrl: string | null;
+  totalPoints: number;
+  acceptedReports: number;
+  totalReports: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  infoCount: number;
+  firstReportAt: number | null;
+  lastReportAt: number | null;
 }
 
-interface ActivityEntry {
-  handle: string;
-  date: string;
+interface HacktivityEntry {
+  id: string;
+  researcherId: string;
+  researcherName: string;
+  avatarUrl: string | null;
   title: string;
-  severity: "Critical" | "High" | "Medium" | "Low" | "Info";
-  target: string;
-  status: "Accepted" | "Fixed" | "Triaged";
+  severity: string;
+  points: number | null;
+  timestamp: number;
+  action: string;
+}
+
+interface Stats {
+  totalPointsAwarded: number;
+  totalResearchers: number;
+  totalReportsAccepted: number;
+  averagePointsPerReport: number;
+  topResearcherThisMonth: { name: string; points: number } | null;
 }
 
 // ─── Point values per severity ────────────────────────────────────────────────
 const POINTS: Record<string, number> = {
-  Critical: 200,
-  High: 100,
-  Medium: 50,
-  Low: 20,
-  Info: 5,
+  critical: 200,
+  high: 150,
+  medium: 100,
+  low: 50,
+  informational: 10,
 };
-
-// ─── Static data (update as new researchers are credited) ─────────────────────
-const RESEARCHERS: Researcher[] = [
-  {
-    handle: "laet4x",
-    country: "🇵🇭",
-    reports: 1,
-    accepted: 1,
-    critical: 0,
-    high: 1,
-    medium: 0,
-    low: 0,
-    info: 0,
-    points: 100,
-    since: "Oct 2025",
-  },
-];
-
-const ACTIVITY: ActivityEntry[] = [
-  {
-    handle: "laet4x",
-    date: "Oct 2025",
-    title: "Broken Access Control — Authenticated user can edit any petition",
-    severity: "High",
-    target: "laet4x.com",
-    status: "Accepted",
-  },
-];
 
 // ─── Styling helpers ──────────────────────────────────────────────────────────
 const SEV: Record<string, { bg: string; text: string; dot: string; border: string }> = {
-  Critical: { bg: "bg-red-100",    text: "text-red-800",    dot: "bg-red-500",    border: "border-red-200" },
-  High:     { bg: "bg-orange-100", text: "text-orange-800", dot: "bg-orange-500", border: "border-orange-200" },
-  Medium:   { bg: "bg-yellow-100", text: "text-yellow-800", dot: "bg-yellow-500", border: "border-yellow-200" },
-  Low:      { bg: "bg-blue-100",   text: "text-blue-800",   dot: "bg-blue-400",   border: "border-blue-200" },
-  Info:     { bg: "bg-gray-100",   text: "text-gray-700",   dot: "bg-gray-400",   border: "border-gray-200" },
+  critical: { bg: "bg-red-100",    text: "text-red-800",    dot: "bg-red-500",    border: "border-red-200" },
+  high:     { bg: "bg-orange-100", text: "text-orange-800", dot: "bg-orange-500", border: "border-orange-200" },
+  medium:   { bg: "bg-yellow-100", text: "text-yellow-800", dot: "bg-yellow-500", border: "border-yellow-200" },
+  low:      { bg: "bg-blue-100",   text: "text-blue-800",   dot: "bg-blue-400",   border: "border-blue-200" },
+  informational: { bg: "bg-gray-100", text: "text-gray-700", dot: "bg-gray-400", border: "border-gray-200" },
 };
 
 const STATUS: Record<string, string> = {
-  Accepted: "bg-green-100 text-green-700",
-  Fixed:    "bg-teal-100 text-teal-700",
-  Triaged:  "bg-purple-100 text-purple-700",
+  accepted: "bg-green-100 text-green-700",
+  resolved: "bg-teal-100 text-teal-700",
+  points_awarded: "bg-purple-100 text-purple-700",
 };
 
 function rankBadge(rank: number): string {
@@ -89,33 +75,88 @@ function rankBadge(rank: number): string {
 
 function SevCount({ count, sev }: { count: number; sev: string }) {
   if (count === 0) return <span className="text-gray-300">—</span>;
+  const sevKey = sev.toLowerCase();
+  const style = SEV[sevKey] || SEV.informational;
   return (
-    <span className={`inline-flex items-center justify-center w-7 h-7 rounded text-xs font-bold ${SEV[sev].bg} ${SEV[sev].text}`}>
+    <span className={`inline-flex items-center justify-center w-7 h-7 rounded text-xs font-bold ${style.bg} ${style.text}`}>
       {count}
     </span>
   );
 }
 
-// ─── Aggregate stats ──────────────────────────────────────────────────────────
-const STATS = {
-  researchers: RESEARCHERS.length,
-  reports: ACTIVITY.length,
-  fixed: ACTIVITY.filter((a) => a.status === "Fixed").length,
-  critical: RESEARCHERS.reduce((s, r) => s + r.critical, 0),
-};
+function formatDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffHours < 1) return 'Just now';
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
 
-const SEVERITIES = ["All", "Critical", "High", "Medium", "Low", "Info"] as const;
+const SEVERITIES = ["all", "critical", "high", "medium", "low", "informational"] as const;
 type SevFilter = (typeof SEVERITIES)[number];
+
+const PERIODS = ["all-time", "month", "year"] as const;
+type Period = (typeof PERIODS)[number];
 
 // ─── Page component ───────────────────────────────────────────────────────────
 export default function HallOfFame() {
   const [tab, setTab] = useState<"leaderboard" | "activity">("leaderboard");
-  const [sevFilter, setSevFilter] = useState<SevFilter>("All");
+  const [sevFilter, setSevFilter] = useState<SevFilter>("all");
+  const [period, setPeriod] = useState<Period>("all-time");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [hacktivity, setHacktivity] = useState<HacktivityEntry[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const filteredActivity =
-    sevFilter === "All" ? ACTIVITY : ACTIVITY.filter((a) => a.severity === sevFilter);
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [leaderboardRes, hacktivityRes, statsRes] = await Promise.all([
+          fetch(`/api/hall-of-fame?period=${period}`),
+          fetch('/api/hacktivity'),
+          fetch('/api/hall-of-fame/stats'),
+        ]);
 
-  const sorted = [...RESEARCHERS].sort((a, b) => b.points - a.points);
+        if (leaderboardRes.ok) {
+          const data = await leaderboardRes.json();
+          setLeaderboard(data.leaderboard || []);
+        }
+
+        if (hacktivityRes.ok) {
+          const data = await hacktivityRes.json();
+          setHacktivity(data.activities || []);
+        }
+
+        if (statsRes.ok) {
+          const data = await statsRes.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error('[Hall of Fame] Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [period]);
+
+  const filteredActivity = sevFilter === "all" 
+    ? hacktivity 
+    : hacktivity.filter((a) => a.severity === sevFilter);
+
+  const displayStats = stats || {
+    totalResearchers: leaderboard.length,
+    totalReportsAccepted: hacktivity.length,
+    totalPointsAwarded: leaderboard.reduce((sum, r) => sum + r.totalPoints, 0),
+    averagePointsPerReport: 0,
+  };
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -135,10 +176,10 @@ export default function HallOfFame() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: "🔬", value: STATS.researchers, label: "Researchers" },
-              { icon: "📋", value: STATS.reports,     label: "Reports Submitted" },
-              { icon: "✅", value: STATS.fixed,       label: "Vulnerabilities Fixed" },
-              { icon: "🚨", value: STATS.critical,    label: "Critical Findings" },
+              { icon: "🔬", value: displayStats.totalResearchers, label: "Researchers" },
+              { icon: "📋", value: displayStats.totalReportsAccepted, label: "Reports Accepted" },
+              { icon: "🏆", value: displayStats.totalPointsAwarded, label: "Points Awarded" },
+              { icon: "�", value: displayStats.averagePointsPerReport, label: "Avg Points/Report" },
             ].map((s) => (
               <div key={s.label} className="bg-white/10 backdrop-blur rounded-xl p-5">
                 <div className="text-2xl mb-1">{s.icon}</div>
@@ -167,19 +208,48 @@ export default function HallOfFame() {
           </Link>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-gray-200 mb-6">
-          {([["leaderboard", "🏆 Leaderboard"], ["activity", "⚡ Hactivity"]] as const).map(([id, label]) => (
+        {/* Time Period Filter */}
+        <div className="flex items-center justify-between mb-6 border-b border-gray-200">
+          <div className="flex gap-2">
             <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px ${
-                tab === id ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-800"
+              onClick={() => setTab("leaderboard")}
+              className={`px-5 py-3 font-semibold transition-colors ${
+                tab === "leaderboard"
+                  ? "text-blue-700 border-b-2 border-blue-700"
+                  : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              {label}
+              🏆 Leaderboard
             </button>
-          ))}
+            <button
+              onClick={() => setTab("activity")}
+              className={`px-5 py-3 font-semibold transition-colors ${
+                tab === "activity"
+                  ? "text-blue-700 border-b-2 border-blue-700"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              ⚡ Hacktivity
+            </button>
+          </div>
+          {/* Time Period Filter (only for leaderboard) */}
+          {tab === "leaderboard" && (
+            <div className="flex gap-2 mb-2">
+              {PERIODS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors capitalize ${
+                    period === p
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {p === 'all-time' ? 'All Time' : p === 'month' ? 'This Month' : 'This Year'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Leaderboard ───────────────────────────────────────────────── */}
@@ -201,34 +271,54 @@ export default function HallOfFame() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {sorted.map((r, i) => (
-                      <tr key={r.handle} className="hover:bg-gray-50 transition-colors">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={8} className="px-5 py-12 text-center text-gray-400">
+                          <div className="text-3xl mb-2">⏳</div>
+                          Loading leaderboard...
+                        </td>
+                      </tr>
+                    ) : leaderboard.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-5 py-12 text-center text-gray-400">
+                          <div className="text-3xl mb-2">🏆</div>
+                          No researchers yet. Be the first!
+                        </td>
+                      </tr>
+                    ) : leaderboard.map((r) => (
+                      <tr key={r.researcherId} className="hover:bg-gray-50 transition-colors">
                         <td className="px-5 py-4">
-                          <span className={i < 3 ? "text-xl" : "text-gray-500 font-mono text-xs"}>
-                            {rankBadge(i + 1)}
+                          <span className={r.rank <= 3 ? "text-xl" : "text-gray-500 font-mono text-xs"}>
+                            {rankBadge(r.rank)}
                           </span>
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                              {r.handle[0].toUpperCase()}
-                            </div>
+                            {r.avatarUrl ? (
+                              <img src={r.avatarUrl} alt={r.researcherName} className="w-9 h-9 rounded-full flex-shrink-0" />
+                            ) : (
+                              <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                {r.researcherName[0].toUpperCase()}
+                              </div>
+                            )}
                             <div>
-                              <p className="font-semibold text-gray-900">{r.handle}</p>
-                              <p className="text-xs text-gray-400 mt-0.5">{r.country} · Since {r.since}</p>
+                              <p className="font-semibold text-gray-900">{r.researcherName}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {r.firstReportAt ? `Since ${formatDate(r.firstReportAt)}` : 'New researcher'}
+                              </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.critical} sev="Critical" /></td>
-                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.high} sev="High" /></td>
-                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.medium} sev="Medium" /></td>
-                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.low} sev="Low" /></td>
+                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.criticalCount} sev="critical" /></td>
+                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.highCount} sev="high" /></td>
+                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.mediumCount} sev="medium" /></td>
+                        <td className="px-5 py-4 text-center hidden lg:table-cell"><SevCount count={r.lowCount} sev="low" /></td>
                         <td className="px-5 py-4 text-center">
-                          <span className="font-medium text-gray-700">{r.accepted}</span>
-                          <span className="text-gray-400">/{r.reports}</span>
+                          <span className="font-medium text-gray-700">{r.acceptedReports}</span>
+                          <span className="text-gray-400">/{r.totalReports}</span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <span className="font-bold text-blue-700">{r.points.toLocaleString()}</span>
+                          <span className="font-bold text-blue-700">{r.totalPoints.toLocaleString()}</span>
                           <span className="text-gray-400 text-xs ml-1">pts</span>
                         </td>
                       </tr>
@@ -259,10 +349,10 @@ export default function HallOfFame() {
                 <button
                   key={sev}
                   onClick={() => setSevFilter(sev)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors capitalize ${
                     sevFilter === sev
                       ? "bg-blue-600 text-white"
-                      : sev === "All"
+                      : sev === "all"
                       ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       : `${SEV[sev].bg} ${SEV[sev].text} hover:opacity-80 border ${SEV[sev].border}`
                   }`}
@@ -275,39 +365,55 @@ export default function HallOfFame() {
               </span>
             </div>
 
-            {filteredActivity.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-20 text-gray-400">
+                <div className="text-4xl mb-3">⏳</div>
+                <p>Loading activity...</p>
+              </div>
+            ) : filteredActivity.length === 0 ? (
               <div className="text-center py-20 text-gray-400">
                 <div className="text-4xl mb-3">🔎</div>
                 <p>No reports matching this filter yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredActivity.map((item, i) => (
+                {filteredActivity.map((item) => (
                   <div
-                    key={i}
+                    key={item.id}
                     className="bg-white rounded-xl border border-gray-200 p-4 flex items-start justify-between gap-4 hover:shadow-sm transition-shadow"
                   >
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${SEV[item.severity].dot}`} />
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${SEV[item.severity]?.dot || SEV.informational.dot}`} />
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 text-sm">{item.title}</p>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-xs text-gray-500">
-                          <span className="font-medium text-blue-600">{item.handle}</span>
+                          <div className="flex items-center gap-2">
+                            {item.avatarUrl ? (
+                              <img src={item.avatarUrl} alt={item.researcherName} className="w-4 h-4 rounded-full" />
+                            ) : (
+                              <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-white text-[8px] font-bold">
+                                {item.researcherName[0].toUpperCase()}
+                              </div>
+                            )}
+                            <span className="font-medium text-blue-600">{item.researcherName}</span>
+                          </div>
                           <span>·</span>
-                          <a href={`https://${item.target}`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
-                            {item.target}
-                          </a>
-                          <span>·</span>
-                          <span>{item.date}</span>
+                          <span>{formatDate(item.timestamp)}</span>
+                          {item.points && (
+                            <>
+                              <span>·</span>
+                              <span className="font-semibold text-green-600">+{item.points} pts</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 flex-shrink-0">
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${SEV[item.severity].bg} ${SEV[item.severity].text}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold capitalize ${SEV[item.severity]?.bg || SEV.informational.bg} ${SEV[item.severity]?.text || SEV.informational.text}`}>
                         {item.severity}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${STATUS[item.status]}`}>
-                        {item.status}
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold capitalize ${STATUS[item.action] || STATUS.accepted}`}>
+                        {item.action}
                       </span>
                     </div>
                   </div>
