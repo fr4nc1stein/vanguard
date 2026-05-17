@@ -9,7 +9,8 @@ import { requireRole } from '@/lib/auth';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-export const runtime = 'edge';
+// Removed edge runtime to use Node.js runtime for better Clerk API compatibility
+// export const runtime = 'edge';
 
 // PATCH - Update scope
 const UpdateScopeSchema = z.object({
