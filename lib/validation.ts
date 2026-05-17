@@ -55,8 +55,8 @@ export type ReportSubmitInput = z.infer<typeof ReportSubmitSchema>;
 
 export const TriageUpdateSchema = z.object({
   status:     z.enum(VALID_STATUSES),
-  assignedTo: z.string().max(100).optional(),
-  comment:    z.string().max(2_000).optional(),
+  assignedTo: z.string().max(100).nullable().optional(),
+  comment:    z.string().max(2_000).nullable().optional(),
   severity:   z.enum(SEVERITIES).optional(), // allow triager to adjust severity
 });
 

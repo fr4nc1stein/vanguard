@@ -9,6 +9,12 @@ import ReportStatusBadge from "../../../components/ReportStatusBadge";
 import AuditLogTimeline, { AuditEntry } from "../../../components/AuditLogTimeline";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Toast {
+  message: string;
+  type: "success" | "error";
+}
+
 interface ReportDetail {
   id: string;
   ref_id: string;
@@ -77,10 +83,18 @@ export default function AdminReportDetail() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [toast, setToast] = useState<Toast | null>(null);
 
   // Hall of Fame visibility state
   const [hallOfFameEntry, setHallOfFameEntry] = useState<{ id: string; isPublic: boolean } | null>(null);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   useEffect(() => {
     fetch(`/api/reports/${id}`)
@@ -143,9 +157,10 @@ export default function AdminReportDetail() {
 
       setNewComment("");
       await fetchComments();
+      setToast({ message: "Comment posted successfully", type: "success" });
     } catch (err) {
       console.error("[handleSubmitComment]", err);
-      alert("Failed to post comment. Please try again.");
+      setToast({ message: "Failed to post comment. Please try again.", type: "error" });
     } finally {
       setSubmittingComment(false);
     }
@@ -173,9 +188,10 @@ export default function AdminReportDetail() {
       }
 
       // Refresh
-      window.location.reload();
+      setToast({ message: `Report status updated to ${newStatus}`, type: "success" });
+      setTimeout(() => window.location.reload(), 1000);
     } catch (e: unknown) {
-      alert((e as Error).message);
+      setToast({ message: (e as Error).message, type: "error" });
     } finally {
       setTriageLoading(null);
     }
@@ -205,9 +221,13 @@ export default function AdminReportDetail() {
         isPublic: !hallOfFameEntry.isPublic,
       });
 
-      alert(hallOfFameEntry.isPublic ? 'Entry hidden from public' : 'Entry made public');
+      setToast({ 
+        message: hallOfFameEntry.isPublic ? 'Entry hidden from public' : 'Entry made public', 
+        type: "success" 
+      });
+      fetchHallOfFameEntry();
     } catch (e: unknown) {
-      alert((e as Error).message);
+      setToast({ message: (e as Error).message, type: "error" });
     } finally {
       setTogglingVisibility(false);
     }
@@ -522,6 +542,21 @@ export default function AdminReportDetail() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+          <div
+            className={`px-6 py-3 rounded-lg shadow-lg ${
+              toast.type === "success"
+                ? "bg-green-600 text-white"
+                : "bg-red-600 text-white"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
 
       <SiteFooter />
     </main>
