@@ -4,9 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
 import { researcherStats, hallOfFame } from '@/lib/db/schema';
-import { desc, gte } from 'drizzle-orm';
-
-export const runtime = 'edge';
+import { gte } from 'drizzle-orm';
 
 export async function GET(_request: NextRequest) {
   try {
