@@ -299,6 +299,49 @@ export default function AdminHallOfFame() {
           </div>
         </div>
 
+        {/* Hall of Fame Entries Management */}
+        <div className="bg-white rounded-xl border border-gray-200 mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">👁️ Manage Entry Visibility</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Toggle visibility of individual hall of fame entries. Hidden entries won't appear on the public page.
+            </p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-3 text-left">Researcher</th>
+                  <th className="px-6 py-3 text-left">Report</th>
+                  <th className="px-6 py-3 text-center">Severity</th>
+                  <th className="px-6 py-3 text-center">Points</th>
+                  <th className="px-6 py-3 text-center">Date</th>
+                  <th className="px-6 py-3 text-center">Visibility</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                      <div className="text-3xl mb-2">⏳</div>
+                      Loading entries...
+                    </td>
+                  </tr>
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
+                      <div className="text-3xl mb-2">🚧</div>
+                      <p className="text-sm">Entry management coming soon</p>
+                      <p className="text-xs text-gray-500 mt-1">Use API endpoint: PATCH /api/admin/hall-of-fame/[id]/visibility</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Leaderboard Table */}
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
