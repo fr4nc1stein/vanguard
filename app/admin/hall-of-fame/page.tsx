@@ -146,6 +146,35 @@ export default function AdminHallOfFame() {
     }
   }
 
+  async function handleToggleVisibility(entryId: string, currentVisibility: boolean) {
+    try {
+      const res = await fetch(`/api/admin/hall-of-fame/${entryId}/visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isPublic: !currentVisibility,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to toggle visibility');
+      }
+
+      await fetchData();
+      setToast({
+        message: currentVisibility ? 'Entry hidden from public' : 'Entry made public',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('[handleToggleVisibility] Error:', error);
+      setToast({
+        message: error instanceof Error ? error.message : 'Failed to toggle visibility',
+        type: 'error',
+      });
+    }
+  }
+
   const filteredLeaderboard = leaderboard.filter((entry) =>
     entry.researcherName.toLowerCase().includes(searchQuery.toLowerCase())
   );
