@@ -3,7 +3,7 @@
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
 **Live:** https://vanguard.laet4x.com  
-**Version:** v2.5.0  
+**Version:** v2.6.0  
 **Status:** ✅ Production Ready
 
 ## Documentation
@@ -76,7 +76,17 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **CSV Export** — Export analytics data for compliance
 - ✅ **Date Range Selector** — 7, 30, 90, or 365 days
 
-### 🔍 Modern Table Features (v2.4.0)
+### � Activity Logs (v2.6.0)
+- ✅ **Centralized Activity Viewer** (`/admin/activity-logs`) — All platform activities in one place
+- ✅ **Advanced Filtering** — Filter by action type, date range, actor, report ID
+- ✅ **Timeline View** — Color-coded actions with icons (7 action types)
+- ✅ **Search Functionality** — Real-time search across all log fields
+- ✅ **Pagination** — 50 logs per page with navigation
+- ✅ **CSV Export** — Export filtered logs for compliance and auditing
+- ✅ **Actor Display** — Shows email addresses instead of Clerk IDs
+- ✅ **Report Links** — Direct links to triage page from log entries
+
+### �� Modern Table Features (v2.4.0)
 All data tables include:
 - ✅ **Search** — Real-time filtering across multiple fields
 - ✅ **Column Sorting** — Click headers to sort ascending/descending
@@ -232,7 +242,7 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 
 **Security & Compliance**
 - [ ] Two-factor authentication
-- [ ] Audit log export
+- [x] Audit log export (CSV export in Activity Logs)
 - [ ] GDPR compliance tools
 - [ ] Data retention policies
 
@@ -263,6 +273,13 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 - [ ] Keyboard shortcuts
 
 ### Recently Completed
+
+**v2.6.0 (May 18, 2026)**
+- ✅ Activity Logs feature with centralized viewer
+- ✅ Advanced filtering and search capabilities
+- ✅ CSV export for compliance
+- ✅ Color-coded timeline view
+- ✅ Email display instead of Clerk IDs
 
 **v2.5.0 (May 16, 2026)**
 - ✅ Complete Hall of Fame system with leaderboard and hacktivity
