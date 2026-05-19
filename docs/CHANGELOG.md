@@ -2,7 +2,9 @@
 
 All notable changes to the Vanguard VDP platform.
 
-## [2.6.0] - 2026-05-18
+> **Versioning Strategy:** This project uses semantic versioning with `0.x.y` for development releases and `1.x.y` for production releases. Version `1.0.0` will mark the first production-ready release.
+
+## [0.6.0-dev] - 2026-05-18
 
 ### 📋 Activity Logs Feature (Major Feature)
 - Implemented centralized Activity Logs viewer for admin dashboard
@@ -75,7 +77,7 @@ All notable changes to the Vanguard VDP platform.
 - Immutable audit trail (no delete/edit)
 - CSV export respects active filters
 
-## [2.5.0] - 2026-05-16
+## [0.5.0-dev] - 2026-05-16
 
 ### 🏆 Hall of Fame System (Major Feature)
 - Implemented complete Hall of Fame system with public leaderboard

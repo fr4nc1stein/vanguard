@@ -3,8 +3,8 @@
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
 **Live:** https://vanguard.laet4x.com  
-**Version:** v2.6.0  
-**Status:** ✅ Production Ready
+**Version:** v0.6.0-dev  
+**Status:** 🚧 Active Development (Pre-Production)
 
 ## Documentation
 
@@ -273,16 +273,19 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 - [ ] Dark mode
 - [ ] Keyboard shortcuts
 
-### Recently Completed
+### Development Releases (Pre-Production)
 
-**v2.6.0 (May 18, 2026)**
+> **Note:** Using `0.x.y` versioning during active development. Version `1.0.0` will mark the first production-ready release.
+
+**v0.6.0-dev (May 18, 2026)** - Current
 - ✅ Activity Logs feature with centralized viewer
 - ✅ Advanced filtering and search capabilities
 - ✅ CSV export for compliance
 - ✅ Color-coded timeline view
 - ✅ Email display instead of Clerk IDs
+- ✅ User data deletion guide (GDPR compliance)
 
-**v2.5.0 (May 16, 2026)**
+**v0.5.0-dev (May 16, 2026)**
 - ✅ Complete Hall of Fame system with leaderboard and hacktivity
 - ✅ Time period filtering (All Time, This Month, This Year)
 - ✅ Visibility management with search and pagination
@@ -291,23 +294,37 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 - ✅ Title redaction for privacy
 - ✅ Edge runtime compatibility fixes
 
-**v2.4.0 (May 15, 2026)**
+**v0.4.0-dev (May 15, 2026)**
 - ✅ Modern table features (search, sort, pagination)
 - ✅ User management improvements
 - ✅ Search bar text color fix
 - ✅ Audit log cleanup
 
-**v2.3.0 (May 15, 2026)**
+**v0.3.0-dev (May 15, 2026)**
 - ✅ Analytics dashboard
 - ✅ Comments system
 - ✅ Markdown rendering
 - ✅ Report detail views
 
-**v2.2.0 and earlier**
+**v0.2.0-dev and earlier**
 - ✅ Core platform features
 - ✅ Role-based access control
 - ✅ Scope management
 - ✅ Triage workflow
+
+---
+
+### Roadmap to v1.0.0 (Production Release)
+
+**Required for 1.0.0:**
+- [ ] Security audit completion
+- [ ] Comprehensive testing suite
+- [ ] Production deployment infrastructure
+- [ ] User acceptance testing
+- [ ] Performance optimization
+- [ ] Complete documentation
+- [ ] Backup and disaster recovery plan
+- [ ] Monitoring and alerting setup
 
 ## License
 
