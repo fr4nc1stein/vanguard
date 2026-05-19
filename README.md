@@ -3,8 +3,8 @@
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
 **Live:** https://vanguard.laet4x.com  
-**Version:** v0.6.0-dev  
-**Status:** 🚧 Active Development (Pre-Production)
+**Version:** v1.0.0-alpha  
+**Status:** 🧪 Public Alpha - Open for Testing
 
 ## Documentation
 
@@ -24,7 +24,7 @@ A modern vulnerability disclosure platform built for security researchers and se
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 16.2.5 (App Router) |
+| Framework | Next.js 16.0.0 (App Router) |
 | Runtime | Cloudflare Workers via `@opennextjs/cloudflare` |
 | Database | Cloudflare D1 (SQLite) — binding `DB` |
 | ORM | Drizzle ORM |
