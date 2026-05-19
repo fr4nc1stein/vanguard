@@ -91,6 +91,8 @@ export default function AdminReportDetail() {
 
   // Self-assignment state
   const [assigningToMe, setAssigningToMe] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [triagers, setTriagers] = useState<Array<{ email: string; name: string }>>([]);
 
   useEffect(() => {
     if (toast) {
@@ -98,6 +100,30 @@ export default function AdminReportDetail() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  useEffect(() => {
+    // Fetch triagers list for dropdown
+    fetch('/api/admin/users')
+      .then(async (r) => {
+        if (r.ok) {
+          const data = await r.json();
+          const triagerList = data.users
+            .filter((u: any) => u.role === 'TRIAGER' || u.role === 'ADMIN')
+            .map((u: any) => ({
+              email: u.email,
+              name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+            }));
+          setTriagers(triagerList);
+          
+          // Set current user email
+          const currentEmail = localStorage.getItem('userEmail');
+          if (currentEmail) {
+            setCurrentUserEmail(currentEmail);
+          }
+        }
+      })
+      .catch((err) => console.error('[fetchTriagers]', err));
+  }, []);
 
   useEffect(() => {
     fetch(`/api/reports/${id}`)
@@ -512,18 +538,12 @@ export default function AdminReportDetail() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Assign to (email)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Assignment</label>
                     <div className="space-y-2">
-                      <input
-                        type="email"
-                        value={triageAssignTo}
-                        onChange={(e) => setTriageAssignTo(e.target.value)}
-                        placeholder="triager@vanguardvdp.ph"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      {/* Assign to Me button */}
                       <button
                         onClick={handleAssignToMe}
-                        disabled={assigningToMe}
+                        disabled={assigningToMe || (report?.assigned_to === currentUserEmail)}
                         className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {assigningToMe ? (
@@ -534,6 +554,13 @@ export default function AdminReportDetail() {
                             </svg>
                             Assigning...
                           </>
+                        ) : report?.assigned_to === currentUserEmail ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Assigned to You
+                          </>
                         ) : (
                           <>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -543,6 +570,20 @@ export default function AdminReportDetail() {
                           </>
                         )}
                       </button>
+
+                      {/* Admin override: Assign to someone else */}
+                      <select
+                        value={triageAssignTo}
+                        onChange={(e) => setTriageAssignTo(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Assign to someone else...</option>
+                        {triagers.map((t) => (
+                          <option key={t.email} value={t.email}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
