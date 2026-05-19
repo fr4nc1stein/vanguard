@@ -153,7 +153,7 @@ export default function ResearcherReportDetailPage() {
     return (
       <main className="min-h-screen bg-gray-50">
         <SiteHeader />
-        <div className="max-w-5xl mx-auto px-4 py-16 text-center">
+        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
           <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-gray-400">Loading report...</p>
         </div>
@@ -166,7 +166,7 @@ export default function ResearcherReportDetailPage() {
     return (
       <main className="min-h-screen bg-gray-50">
         <SiteHeader />
-        <div className="max-w-5xl mx-auto px-4 py-16">
+        <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
             {error || "Report not found"}
           </div>
@@ -185,7 +185,7 @@ export default function ResearcherReportDetailPage() {
     <main className="min-h-screen bg-gray-50">
       <SiteHeader />
 
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Link href="/dashboard" className="hover:text-blue-600">

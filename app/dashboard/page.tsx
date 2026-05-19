@@ -110,7 +110,7 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-gray-50 flex flex-col">
       <SiteHeader />
 
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-10">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-10">
         {/* Page title */}
         <div className="flex items-center justify-between mb-8">
           <div>
