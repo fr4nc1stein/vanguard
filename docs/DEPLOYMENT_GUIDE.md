@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Complete reference for deploying Vanguard VDP on Cloudflare Workers with Clerk auth and D1 database.
+Complete step-by-step guide for deploying Vanguard VDP from scratch on Cloudflare Workers with custom domain, Clerk authentication, and D1 database.
 
 ---
 
@@ -18,21 +18,112 @@ Browser
 **Key URLs**
 | Environment | URL |
 |---|---|
-| Production Worker | https://vanguard-vdp.fr4nc1stein.workers.dev |
-| Custom Domain | https://vanguard.laet4x.com |
-| Admin Panel | /admin |
+| Production Domain | https://vanguard.laet4x.com |
+| Admin Panel | https://vanguard.laet4x.com/admin |
 | Clerk Dashboard | https://dashboard.clerk.com |
 | Cloudflare Dashboard | https://dash.cloudflare.com |
 
+> **Note:** This guide uses a custom domain (`vanguard.laet4x.com`). The default `*.workers.dev` subdomain is not recommended for production use.
+
 ---
 
-## 1. Cloudflare Setup
+## Prerequisites
 
-### Worker
+- **Node.js** 18+ and npm
+- **Git** installed
+- **Cloudflare account** with a domain added
+- **Clerk account** (free tier works)
+- **Terminal/Command line** access
 
-The app is deployed as a Cloudflare **Worker** (not Pages) using `@opennextjs/cloudflare`.
+---
 
-**`wrangler.toml` key settings:**
+## Step 1: Clone Repository & Install Dependencies
+
+### 1.1 Clone the Repository
+
+```bash
+# Clone the repository
+git clone https://github.com/fr4nc1stein/vanguard.git
+cd vanguard
+```
+
+### 1.2 Install Dependencies
+
+```bash
+# Install all dependencies
+npm install --legacy-peer-deps
+```
+
+> **Note:** The `--legacy-peer-deps` flag is required due to peer dependency conflicts in some packages.
+
+### 1.3 Verify Installation
+
+```bash
+# Check if wrangler is available
+npx wrangler --version
+
+# Should output: ⛅️ wrangler 4.x.x
+```
+
+---
+
+## Step 2: Prepare Environment Variables
+
+### 2.1 Generate Encryption Key
+
+First, generate a secure encryption key for AES-GCM-256:
+
+```bash
+openssl rand -hex 32
+```
+
+This will output a 64-character hex string. **Save this securely** - you'll need it for both local development and production.
+
+### 2.2 Create Local Environment File
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+### 2.3 Configure Environment Variables
+
+Edit `.env.local` and add your values:
+
+```env
+# Clerk Authentication (get from https://dashboard.clerk.com)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_YOUR_KEY_HERE
+CLERK_SECRET_KEY=sk_live_YOUR_SECRET_HERE
+
+# Clerk Redirect URLs
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+
+# Application Encryption (use the key generated above)
+ENCRYPTION_KEY=YOUR_64_CHARACTER_HEX_KEY_HERE
+```
+
+> **Important:** Never commit `.env.local` to git. It's already in `.gitignore`.
+
+---
+
+## Step 3: Cloudflare Setup
+
+### 3.1 Login to Cloudflare
+
+```bash
+npx wrangler login
+```
+
+This will open a browser window to authenticate with Cloudflare.
+
+### 3.2 Verify Wrangler Configuration
+
+The repository includes a pre-configured `wrangler.toml` file:
+
 ```toml
 name = "vanguard-vdp"
 compatibility_date = "2025-01-01"
@@ -41,35 +132,81 @@ main = ".open-next/worker.js"
 assets = { directory = ".open-next/assets" }
 ```
 
-> **Why Worker and not Pages?** `@opennextjs/cloudflare` v1+ outputs a `worker.js` bundle, not a Pages Functions directory. The `wrangler.toml` must use `main =` instead of `pages_build_output_dir`.
+**Key Points:**
+- The app is deployed as a Cloudflare **Worker** (not Pages)
+- Uses `@opennextjs/cloudflare` for Next.js compatibility
+- Worker name: `vanguard-vdp` (you can change this if needed)
 
-### D1 Database
+### 3.3 Create D1 Database
 
-| Setting | Value |
-|---|---|
-| Name | `vanguard-security` |
-| UUID | `9920df77-b7fa-4846-9e81-6e77c13ec8e6` |
-| Binding | `DB` |
+Create a new D1 database for the application:
 
-**Apply schema to remote DB:**
 ```bash
+npx wrangler d1 create vanguard-security
+```
+
+This will output:
+```
+✅ Successfully created DB 'vanguard-security'
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vanguard-security"
+database_id = "<YOUR-DATABASE-UUID>"
+```
+
+**Important:** Copy the `database_id` and update it in `wrangler.toml`:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "vanguard-security"
+database_id = "YOUR-DATABASE-UUID-HERE"  # Replace with your actual UUID
+```
+
+### 3.4 Apply Database Schema
+
+Apply the initial schema to your D1 database:
+
+```bash
+# Apply main schema
 npx wrangler d1 execute vanguard-security --remote --file=migrations/0001_schema.sql --yes
+
+# Apply additional migrations (if any)
+npx wrangler d1 execute vanguard-security --remote --file=migrations/004_create_comments_table.sql --yes
+npx wrangler d1 execute vanguard-security --remote --file=migrations/003_create_scopes_table.sql --yes
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0005_hall_of_fame.sql --yes
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0006_response_templates.sql --yes
 ```
 
-### Worker Secrets
-
-Set these via `wrangler secret put` (never in `wrangler.toml`):
+### 3.5 Verify Database
 
 ```bash
+# List all tables
+npx wrangler d1 execute vanguard-security --remote --command="SELECT name FROM sqlite_master WHERE type='table';"
+```
+
+You should see tables like: `reports`, `audit_logs`, `comments`, `scopes`, `hall_of_fame`, etc.
+
+### 3.6 Set Worker Secrets
+
+Secrets are environment variables that are encrypted and only available at runtime. **Never put secrets in `wrangler.toml`**.
+
+```bash
+# Set Clerk secret key
 npx wrangler secret put CLERK_SECRET_KEY
+# Paste your sk_live_... key when prompted
+
+# Set Clerk publishable key
 npx wrangler secret put NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+# Paste your pk_live_... key when prompted
+
+# Set encryption key
 npx wrangler secret put ENCRYPTION_KEY
+# Paste your 64-character hex key when prompted
 ```
 
-`ENCRYPTION_KEY` must be 64 hex characters:
-```bash
-openssl rand -hex 32
-```
+> **Tip:** You can verify secrets are set with: `npx wrangler secret list`
 
 ### Observability
 
@@ -92,7 +229,7 @@ npx wrangler tail vanguard-vdp --format pretty
 
 ---
 
-## 2. Clerk Setup
+## Step 4: Clerk Setup
 
 ### Application Settings
 
@@ -106,11 +243,13 @@ Go to **Clerk Dashboard → Configure → Paths** and set:
 | After sign-up URL | `/dashboard` |
 | After sign-out URL | `/` |
 
-### Allowed Redirect Origins
+### 4.3 Configure Allowed Redirect Origins
 
-Go to **Clerk Dashboard → Configure → Domains** and add:
-- `https://vanguard-vdp.fr4nc1stein.workers.dev`
-- `https://vanguard.laet4x.com`
+Go to **Clerk Dashboard → Configure → Domains** and add your custom domain:
+
+- `https://vanguard.laet4x.com` (or your custom domain)
+
+> **Note:** Do NOT use the `*.workers.dev` subdomain in production. Always use your custom domain.
 
 ### User Roles
 
@@ -147,7 +286,72 @@ These must be set in both `.env.local` (for builds) and as Worker secrets (for r
 
 ---
 
-## 3. Google OAuth (Optional)
+## Step 5: Custom Domain & DNS Setup
+
+### 5.1 Add Domain to Cloudflare
+
+If your domain isn't already on Cloudflare:
+
+1. Go to **Cloudflare Dashboard → Add a Site**
+2. Enter your domain (e.g., `laet4x.com`)
+3. Select a plan (Free works fine)
+4. Follow the instructions to update your domain's nameservers
+5. Wait for DNS propagation (can take up to 48 hours, usually much faster)
+
+### 5.2 Configure DNS Records
+
+Once your domain is active on Cloudflare:
+
+1. Go to **Cloudflare Dashboard → DNS → Records**
+2. You'll add a CNAME record for your subdomain in the next step
+
+> **Note:** The Worker custom domain feature will automatically create the necessary DNS records.
+
+### 5.3 Add Custom Domain to Worker
+
+1. Go to **Cloudflare Dashboard → Workers & Pages**
+2. Click on your worker (`vanguard-vdp`)
+3. Go to **Settings → Triggers**
+4. Under **Custom Domains**, click **Add Custom Domain**
+5. Enter your domain: `vanguard.laet4x.com` (or your subdomain)
+6. Click **Add Custom Domain**
+
+Cloudflare will:
+- ✅ Automatically create DNS records
+- ✅ Provision SSL certificate (takes 1-5 minutes)
+- ✅ Route traffic to your Worker
+
+### 5.4 Verify DNS Configuration
+
+After adding the custom domain, verify the DNS records:
+
+1. Go to **Cloudflare Dashboard → DNS → Records**
+2. You should see a new record:
+   - **Type:** CNAME
+   - **Name:** vanguard (or your subdomain)
+   - **Target:** vanguard-vdp.fr4nc1stein.workers.dev (auto-generated)
+   - **Proxy status:** Proxied (orange cloud)
+
+### 5.5 Test Custom Domain
+
+Wait 1-2 minutes for SSL provisioning, then test:
+
+```bash
+curl -I https://vanguard.laet4x.com
+```
+
+You should see:
+```
+HTTP/2 200
+server: cloudflare
+...
+```
+
+> **Troubleshooting:** If you get SSL errors, wait a few more minutes. SSL certificate provisioning can take up to 15 minutes.
+
+---
+
+## Step 6: Google OAuth (Optional)
 
 To enable Google sign-in through Clerk:
 
@@ -168,23 +372,21 @@ To enable Google sign-in through Clerk:
 
 ---
 
-## 4. Environment Variables
 
-### `.env.local` (build-time, NOT committed)
-```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-CLERK_SECRET_KEY=sk_live_...
-ENCRYPTION_KEY=<64 hex chars>
+## Step 7: Build and Deploy
+
+### 7.1 Build the Application
+
+```bash
+npm run build
 ```
 
-### Worker Secrets (runtime)
-The same three variables above must also be pushed as Worker secrets via `wrangler secret put`.
+This will:
+- Build the Next.js application
+- Generate the OpenNext bundle
+- Output to `.open-next/` directory
 
-> **Critical:** `.env.local` overrides `.env` during `next build`. If `.env.local` contains a dev (`pk_test_`) key, it gets baked into the bundle even if `.env` has the correct production key. Always keep `.env.local` in sync with production keys.
-
----
-
-## 5. Deploy
+### 7.2 Deploy to Cloudflare
 
 ```bash
 npm run deploy
@@ -192,22 +394,63 @@ npm run deploy
 
 This runs: `opennextjs-cloudflare build && wrangler deploy`
 
-Build output is in `.open-next/worker.js` and `.open-next/assets/`.
+You should see:
+```
+✨ Success! Uploaded vanguard-vdp (X.XX sec)
+Deployed vanguard-vdp triggers (X.XX sec)
+  https://vanguard.laet4x.com
+Current Version ID: <version-id>
+```
+
+### 7.3 Verify Deployment
+
+Visit your custom domain:
+```
+https://vanguard.laet4x.com
+```
+
+You should see the Vanguard VDP homepage.
 
 ---
 
-## 6. Custom Domain
 
-To route `vanguard.laet4x.com` to the Worker:
+## Step 8: Post-Deployment Configuration
 
-1. **Cloudflare Dashboard → Workers & Pages → vanguard-vdp → Settings → Triggers**
-2. Add Custom Domain: `vanguard.laet4x.com`
-3. Cloudflare automatically provisions SSL (may take a few minutes)
-4. Once active, also add this origin to Clerk's allowed redirect origins
+### 8.1 Update Clerk Redirect URLs
+
+Now that your custom domain is live, update Clerk:
+
+1. Go to **Clerk Dashboard → Configure → Domains**
+2. Ensure `https://vanguard.laet4x.com` is in the allowed redirect origins
+3. Remove any `*.workers.dev` URLs if present
+
+### 8.2 Assign Admin Role
+
+To access the admin panel, you need to assign yourself the ADMIN role:
+
+1. Go to **Clerk Dashboard → Users**
+2. Find your user account
+3. Click on your name
+4. Scroll to **Metadata → Public**
+5. Add:
+   ```json
+   { "role": "ADMIN" }
+   ```
+6. Save
+7. Sign out and sign back in to refresh your session
+
+### 8.3 Test Admin Access
+
+Visit:
+```
+https://vanguard.laet4x.com/admin
+```
+
+You should see the admin dashboard.
 
 ---
 
-## 7. Common Issues & Fixes
+## Step 9: Common Issues & Fixes
 
 ### `TypeError: Cannot read properties of undefined (reading 'default')`
 - **Cause:** `export const runtime = 'edge'` on page files or API routes.
