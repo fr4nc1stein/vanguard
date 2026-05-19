@@ -115,23 +115,23 @@ export default function AdminManagement() {
             </Link>
           </div>
 
-          {/* Audit Logs */}
+          {/* Activity Logs */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-xl">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">
                 📋
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">Audit Logs</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Activity Logs</h2>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              View comprehensive platform activity logs and compliance reports.
+              Track all platform activities, admin actions, and security events.
             </p>
-            <button
-              disabled
-              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
+            <Link
+              href="/admin/activity-logs"
+              className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Coming Soon
-            </button>
+              View Logs →
+            </Link>
           </div>
         </div>
 
