@@ -276,6 +276,6 @@ npx wrangler d1 execute vanguard-security --remote --command="SELECT DISTINCT ac
 ## Support
 
 For assistance with data deletion:
-- **Security Team**: security@vanguardvdp.ph
+- **GitHub Issues**: https://github.com/fr4nc1stein/vanguard/issues
 - **Documentation**: `/docs/DATA_DELETION.md`
 - **Clerk Support**: https://clerk.com/support
