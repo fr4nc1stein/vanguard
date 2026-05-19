@@ -8,6 +8,9 @@ export type  Severity   = (typeof SEVERITIES)[number];
 export const VALID_STATUSES = ['new', 'triaged', 'accepted', 'rejected', 'fixed', 'informational'] as const;
 export type  ReportStatus   = (typeof VALID_STATUSES)[number];
 
+export const TEMPLATE_CATEGORIES = ['triage', 'acceptance', 'rejection', 'info_request', 'general'] as const;
+export type  TemplateCategory   = (typeof TEMPLATE_CATEGORIES)[number];
+
 export const VALID_TARGETS = [
   'vanguard.laet4x.com',
   'laet4x.com',
@@ -94,3 +97,23 @@ export const PaginationSchema = z.object({
 });
 
 export type PaginationInput = z.infer<typeof PaginationSchema>;
+
+// ── Response Template Schemas ─────────────────────────────────────────────────
+
+export const TemplateCreateSchema = z.object({
+  name:     z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  category: z.enum(TEMPLATE_CATEGORIES),
+  subject:  z.string().max(200, 'Subject too long').optional(),
+  body:     z.string().min(10, 'Body must be at least 10 characters').max(5000, 'Body too long'),
+});
+
+export const TemplateUpdateSchema = z.object({
+  name:      z.string().min(1).max(100).optional(),
+  category:  z.enum(TEMPLATE_CATEGORIES).optional(),
+  subject:   z.string().max(200).optional(),
+  body:      z.string().min(10).max(5000).optional(),
+  is_active: z.boolean().optional(),
+});
+
+export type TemplateCreateInput = z.infer<typeof TemplateCreateSchema>;
+export type TemplateUpdateInput = z.infer<typeof TemplateUpdateSchema>;
