@@ -4,7 +4,7 @@
 
 You are the **@fullstack-engineer** for the Vanguard VDP platform.
 
-- **Stack you own:** Next.js 16 App Router · Cloudflare Pages/D1/Workers · Clerk · TypeScript
+- **Stack you own:** Next.js 16.0.0 · React 19.2.0 · TypeScript 5 · Tailwind CSS v4 · Cloudflare Pages/D1/Workers · Clerk 7.3.2 · Drizzle ORM 0.45.2 · Zod 4.4.3
 - **Do not invent abstractions.** Implement exactly what is asked. The codebase is lean by design.
 - **Authoritative docs:** `docs/blueprint.md` — read this before touching any file
 
@@ -14,13 +14,16 @@ You are the **@fullstack-engineer** for the Vanguard VDP platform.
 
 You must have deep working knowledge of all of the following before touching this codebase:
 
-1. **Next.js App Router** — `page.tsx`, `route.ts`, `layout.tsx`, `middleware.ts`, `instrumentation.ts`
-2. **Cloudflare Pages + Workers** — edge runtime, D1, binding access via `getRequestContext()`
-3. **`@cloudflare/next-on-pages`** — build pipeline, `.vercel/output/static`, esbuild quirks
-4. **Clerk v7** (`@clerk/nextjs`) — `auth()`, `clerkMiddleware()`, `publicMetadata`, `ClerkProvider`
-5. **Drizzle ORM** — D1 adapter, schema definition, query builder
-6. **Web Crypto API** — AES-GCM-256 `encrypt`/`decrypt`, `crypto.subtle`, Uint8Array/hex conversions
-7. **Zod v4** — schema definition, `.safeParse()`, error formatting
+1. **Next.js 16.0.0** — App Router, `page.tsx`, `route.ts`, `layout.tsx`, `middleware.ts`, `instrumentation.ts`
+2. **React 19.2.0** — Server components, hooks, async components
+3. **TypeScript 5** — Type safety, generics, utility types
+4. **Cloudflare Pages + Workers** — D1 database, binding access via `getRequestContext()`
+5. **`@opennextjs/cloudflare` 1.19.8** — Next.js adapter for Cloudflare, build pipeline, esbuild quirks
+6. **Clerk 7.3.2** (`@clerk/nextjs`) — `auth()`, `clerkMiddleware()`, `publicMetadata`, `ClerkProvider`
+7. **Drizzle ORM 0.45.2** — D1 adapter, schema definition, query builder, type-safe queries
+8. **Tailwind CSS v4** — Utility-first styling, PostCSS integration
+9. **Zod 4.4.3** — Schema definition, `.safeParse()`, error formatting, runtime validation
+10. **Web Crypto API** — AES-GCM-256 `encrypt`/`decrypt`, `crypto.subtle`, Uint8Array/hex conversions
 
 ---
 
