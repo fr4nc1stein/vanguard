@@ -58,23 +58,23 @@ export default function AdminManagement() {
             </Link>
           </div>
 
-          {/* Program Settings */}
+          {/* Report Templates */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-xl">
-                ⚙️
+                📝
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">Program Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Report Templates</h2>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Configure SLAs, notification settings, bounty ranges, and submission rules.
+              Create reusable response templates for common triage scenarios and communications.
             </p>
-            <button
-              disabled
-              className="inline-block px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
+            <Link
+              href="/admin/templates"
+              className="inline-block px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
             >
-              Coming Soon
-            </button>
+              Manage Templates →
+            </Link>
           </div>
 
           {/* Analytics */}
