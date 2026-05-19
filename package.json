@@ -16,8 +16,6 @@
     "backfill:hall-of-fame": "tsx scripts/backfill-hall-of-fame.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1044.0",
-    "@aws-sdk/s3-request-presigner": "^3.1044.0",
     "@clerk/nextjs": "^7.3.2",
     "drizzle-orm": "^0.45.2",
     "esbuild": "^0.28.0",
