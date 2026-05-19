@@ -43,7 +43,7 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **Triage Workflow** — Complete report lifecycle management
 - ✅ **Security Policy** — Responsible disclosure guidelines and scope
 
-### 🏆 Hall of Fame System (v2.5.0)
+### 🏆 Hall of Fame System (v0.5.0-dev)
 - ✅ **Public Leaderboard** — Points-based researcher rankings
 - ✅ **Time Period Filters** — All Time, This Month, This Year views
 - ✅ **Hacktivity Feed** — Real-time activity of accepted/resolved reports
@@ -87,7 +87,7 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **Actor Display** — Shows email addresses instead of Clerk IDs
 - ✅ **Report Links** — Direct links to triage page from log entries
 
-### �� Modern Table Features (v2.4.0)
+### 🔍 Modern Table Features (v0.4.0-dev)
 All data tables include:
 - ✅ **Search** — Real-time filtering across multiple fields
 - ✅ **Column Sorting** — Click headers to sort ascending/descending
