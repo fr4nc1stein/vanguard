@@ -331,7 +331,7 @@ export default function ActivityLogsPage() {
                       <div>
                         <h3 className="font-semibold text-gray-900">{formatAction(log.action)}</h3>
                         <p className="text-sm text-gray-500">
-                          by <span className="font-medium text-gray-700">{log.actor_email || log.actor_id}</span>
+                          by <span className="font-medium text-gray-700">{log.actor_email || 'System'}</span>
                         </p>
                       </div>
                       <span className="text-xs text-gray-400 whitespace-nowrap">
