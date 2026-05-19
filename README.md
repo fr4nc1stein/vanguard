@@ -13,6 +13,7 @@ A modern vulnerability disclosure platform built for security researchers and se
 | [CHANGELOG.md](CHANGELOG.md) | Version history and feature releases |
 | [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) | Full deployment, Cloudflare/Clerk/Google setup, common fixes |
 | [docs/ROLE_SETUP_INSTRUCTIONS.md](docs/ROLE_SETUP_INSTRUCTIONS.md) | How to assign ADMIN/TRIAGER roles in Clerk |
+| [docs/DATA_DELETION.md](docs/DATA_DELETION.md) | User data deletion guide (GDPR compliance) |
 | [docs/blueprint.md](docs/blueprint.md) | Architecture, data model, API surface, security design |
 | [docs/agent.md](docs/agent.md) | Developer persona — stack rules, failure modes, code patterns |
 | [ISSUES.md](ISSUES.md) | Known issues, edge runtime pitfalls, debugging tips |
