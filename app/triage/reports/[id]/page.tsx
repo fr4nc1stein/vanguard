@@ -89,12 +89,46 @@ export default function AdminReportDetail() {
   const [hallOfFameEntry, setHallOfFameEntry] = useState<{ id: string; isPublic: boolean } | null>(null);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
 
+  // Self-assignment state
+  const [assigningToMe, setAssigningToMe] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [triagers, setTriagers] = useState<Array<{ email: string; name: string }>>([]);
+
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  useEffect(() => {
+    // Fetch triagers list and current user info
+    fetch('/api/admin/users')
+      .then(async (r) => {
+        if (r.ok) {
+          const data = await r.json();
+          const triagerList = data.users
+            .filter((u: any) => u.role === 'TRIAGER' || u.role === 'ADMIN')
+            .map((u: any) => ({
+              email: u.email,
+              name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+            }));
+          setTriagers(triagerList);
+          
+          // Find current user and set email/role
+          const currentEmail = localStorage.getItem('userEmail');
+          if (currentEmail) {
+            setCurrentUserEmail(currentEmail);
+            const currentUser = data.users.find((u: any) => u.email === currentEmail);
+            if (currentUser) {
+              setCurrentUserRole(currentUser.role);
+            }
+          }
+        }
+      })
+      .catch((err) => console.error('[fetchTriagers]', err));
+  }, []);
 
   useEffect(() => {
     fetch(`/api/reports/${id}`)
@@ -194,6 +228,37 @@ export default function AdminReportDetail() {
       setToast({ message: (e as Error).message, type: "error" });
     } finally {
       setTriageLoading(null);
+    }
+  }
+
+  async function handleAssignToMe() {
+    if (!report) return;
+    setAssigningToMe(true);
+
+    try {
+      const res = await fetch(`/api/admin/reports/${id}/assign-to-me`, {
+        method: 'PATCH',
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to assign report');
+      }
+
+      const data = await res.json();
+      setToast({ message: data.message || 'Report assigned to you', type: 'success' });
+      
+      // Store user email in localStorage for "My Reports" filter
+      if (data.assignedTo) {
+        localStorage.setItem('userEmail', data.assignedTo);
+      }
+      
+      // Refresh report data
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (e: unknown) {
+      setToast({ message: (e as Error).message, type: 'error' });
+    } finally {
+      setAssigningToMe(false);
     }
   }
 
@@ -297,7 +362,7 @@ export default function AdminReportDetail() {
                 <div><span className="text-gray-400">Severity:</span> <span className="font-medium text-gray-900 capitalize">{report.severity}</span></div>
                 <div><span className="text-gray-400">Reporter:</span> <span className="font-medium text-gray-900">{report.handle ?? "Anonymous"}</span></div>
                 {report.cvss && (
-                  <div className="sm:col-span-2"><span className="text-gray-400">CVSS:</span> <code className="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded">{report.cvss}</code></div>
+                  <div className="sm:col-span-2"><span className="text-gray-400">CVSS:</span> <code className="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{report.cvss}</code></div>
                 )}
                 <div><span className="text-gray-400">Submitted:</span> <span className="font-medium text-gray-900">{new Date(report.created_at).toLocaleString()}</span></div>
               </div>
@@ -478,14 +543,55 @@ export default function AdminReportDetail() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Assign to (email)</label>
-                    <input
-                      type="email"
-                      value={triageAssignTo}
-                      onChange={(e) => setTriageAssignTo(e.target.value)}
-                      placeholder="triager@vanguardvdp.ph"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Assignment</label>
+                    <div className="space-y-2">
+                      {/* Assign to Me button */}
+                      <button
+                        onClick={handleAssignToMe}
+                        disabled={assigningToMe}
+                        className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {assigningToMe ? (
+                          <>
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Assigning...
+                          </>
+                        ) : report?.assigned_to === currentUserEmail ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Assigned to You
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Assign to Me
+                          </>
+                        )}
+                      </button>
+
+                      {/* Admin override: Assign to someone else (only for admins) */}
+                      {currentUserRole === 'ADMIN' && (
+                        <select
+                          value={triageAssignTo}
+                          onChange={(e) => setTriageAssignTo(e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Assign to someone else...</option>
+                          {triagers.map((t) => (
+                            <option key={t.email} value={t.email}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-1 space-y-2">
