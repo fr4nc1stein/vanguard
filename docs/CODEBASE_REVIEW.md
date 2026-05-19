@@ -450,7 +450,7 @@ The Vanguard VDP platform is a well-architected, secure, and production-ready ap
 
 ## 📞 Support Resources
 
-- **Security Issues:** security@vanguardvdp.ph
+- **Security Issues & Bug Reports:** https://github.com/fr4nc1stein/vanguard/issues
 - **Clerk Documentation:** https://clerk.com/docs
 - **Cloudflare D1 Docs:** https://developers.cloudflare.com/d1/
 - **Next.js App Router:** https://nextjs.org/docs/app

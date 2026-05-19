@@ -332,7 +332,8 @@ Part of Vanguard VDP's public security transparency programme. All content is pu
 
 ## Contact
 
-Security issues: [security@vanguardvdp.ph](mailto:security@vanguardvdp.ph)
+**Security Issues & Bug Reports:**  
+Please create an issue on our [GitHub repository](https://github.com/fr4nc1stein/vanguard/issues)
 
 ### ⚠️ Before First Deployment
 

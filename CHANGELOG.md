@@ -777,7 +777,7 @@ if (!encryptionKey) {
 ```
 [View Hall of Fame] [Submit Another Report]
 Updates will be sent to your registered account email.
-To follow up, email security@vanguardvdp.ph...
+To follow up, create an issue on GitHub...
 ```
 
 **After:**
