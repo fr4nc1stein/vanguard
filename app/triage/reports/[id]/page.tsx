@@ -92,6 +92,7 @@ export default function AdminReportDetail() {
   // Self-assignment state
   const [assigningToMe, setAssigningToMe] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [triagers, setTriagers] = useState<Array<{ email: string; name: string }>>([]);
 
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function AdminReportDetail() {
   }, [toast]);
 
   useEffect(() => {
-    // Fetch triagers list for dropdown
+    // Fetch triagers list and current user info
     fetch('/api/admin/users')
       .then(async (r) => {
         if (r.ok) {
@@ -115,10 +116,14 @@ export default function AdminReportDetail() {
             }));
           setTriagers(triagerList);
           
-          // Set current user email
+          // Find current user and set email/role
           const currentEmail = localStorage.getItem('userEmail');
           if (currentEmail) {
             setCurrentUserEmail(currentEmail);
+            const currentUser = data.users.find((u: any) => u.email === currentEmail);
+            if (currentUser) {
+              setCurrentUserRole(currentUser.role);
+            }
           }
         }
       })
@@ -357,7 +362,7 @@ export default function AdminReportDetail() {
                 <div><span className="text-gray-400">Severity:</span> <span className="font-medium text-gray-900 capitalize">{report.severity}</span></div>
                 <div><span className="text-gray-400">Reporter:</span> <span className="font-medium text-gray-900">{report.handle ?? "Anonymous"}</span></div>
                 {report.cvss && (
-                  <div className="sm:col-span-2"><span className="text-gray-400">CVSS:</span> <code className="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded">{report.cvss}</code></div>
+                  <div className="sm:col-span-2"><span className="text-gray-400">CVSS:</span> <code className="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{report.cvss}</code></div>
                 )}
                 <div><span className="text-gray-400">Submitted:</span> <span className="font-medium text-gray-900">{new Date(report.created_at).toLocaleString()}</span></div>
               </div>
@@ -543,7 +548,7 @@ export default function AdminReportDetail() {
                       {/* Assign to Me button */}
                       <button
                         onClick={handleAssignToMe}
-                        disabled={assigningToMe || (report?.assigned_to === currentUserEmail)}
+                        disabled={assigningToMe}
                         className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {assigningToMe ? (
@@ -571,19 +576,21 @@ export default function AdminReportDetail() {
                         )}
                       </button>
 
-                      {/* Admin override: Assign to someone else */}
-                      <select
-                        value={triageAssignTo}
-                        onChange={(e) => setTriageAssignTo(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Assign to someone else...</option>
-                        {triagers.map((t) => (
-                          <option key={t.email} value={t.email}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
+                      {/* Admin override: Assign to someone else (only for admins) */}
+                      {currentUserRole === 'ADMIN' && (
+                        <select
+                          value={triageAssignTo}
+                          onChange={(e) => setTriageAssignTo(e.target.value)}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Assign to someone else...</option>
+                          {triagers.map((t) => (
+                            <option key={t.email} value={t.email}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
 
