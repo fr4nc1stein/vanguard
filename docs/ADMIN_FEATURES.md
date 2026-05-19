@@ -136,32 +136,58 @@ This document outlines the enterprise-level administrative features for Vanguard
 
 ---
 
-### 5. Audit Logs (Enhanced)
-**Purpose:** Complete platform activity tracking
+### 5. Activity Logs ✅ (Implemented v2.6.0)
+**Purpose:** Complete platform activity tracking and compliance
 
 **Features:**
-- **Comprehensive Logging**
-  - All admin actions (user role changes, scope updates, settings changes)
-  - All triage actions (already implemented)
-  - User authentication events
-  - Failed access attempts
+- **Centralized Log Viewer** ✅
+  - Timeline view with color-coded action types
+  - Filter by action type (7 types supported)
+  - Filter by date range (start/end date pickers)
+  - Filter by actor ID or report ID
+  - Real-time search across all fields
+  - Pagination (50 logs per page)
   
-- **Log Viewer**
-  - Filter by action type, user, date range
-  - Search by keyword
-  - Export logs
-  - Real-time log streaming (future)
+- **CSV Export** ✅
+  - Export filtered logs to CSV
+  - Includes all log fields (timestamp, action, actor, report, values)
+  - Auto-download with timestamped filename
+  - Respects active filters
   
-- **Compliance**
-  - Immutable audit trail
-  - Retention policy configuration
-  - GDPR compliance features
+- **Display Features** ✅
+  - Actor email display (instead of Clerk IDs)
+  - Before/after value badges (color-coded)
+  - Clickable report links to triage page
+  - Statistics dashboard (total, current page, filtered count)
+  - Empty states and loading indicators
+  
+- **Compliance** ✅
+  - Immutable audit trail (no delete/edit)
+  - Admin-only access
+  - IP addresses stored as SHA-256 hashes
+  - CSV export for auditing
+
+**Supported Action Types:**
+1. `report_submitted` - 📝 Blue
+2. `status_changed` - 🔄 Green
+3. `severity_changed` - ⚠️ Orange
+4. `assigned` - 👤 Purple
+5. `poc_uploaded` - 📎 Indigo
+6. `report_viewed` - 👁️ Gray
+7. `report_decrypted` - 🔓 Yellow
 
 **Implementation:**
-- Route: `/admin/audit-logs`
-- API: `/api/admin/audit-logs` (GET)
-- Extends existing `audit_logs` table
+- Route: `/admin/activity-logs` ✅
+- API: `/api/admin/activity-logs` (GET) ✅
+- API: `/api/admin/activity-logs/export` (GET) ✅
+- Uses existing `audit_logs` table (no migration needed)
 - Permissions: ADMIN only
+- Live: https://vanguard.laet4x.com/admin/activity-logs
+
+**Known Limitations:**
+- User data comes from Clerk (no first_name/last_name in database)
+- Displays actor_email from audit_logs table
+- Future enhancement: Add more action types as needed
 
 ---
 

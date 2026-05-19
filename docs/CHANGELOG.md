@@ -2,6 +2,79 @@
 
 All notable changes to the Vanguard VDP platform.
 
+## [2.6.0] - 2026-05-18
+
+### 📋 Activity Logs Feature (Major Feature)
+- Implemented centralized Activity Logs viewer for admin dashboard
+- Added comprehensive filtering (action type, date range, actor, report ID)
+- Built timeline view with color-coded action types and icons
+- Created CSV export functionality for compliance and auditing
+- Implemented pagination (50 logs per page)
+- Added real-time search across all log fields
+- Integrated with admin menu (replaced "Coming Soon" placeholder)
+
+### 🎨 UI/UX Enhancements
+- Color-coded action types with emoji icons (7 types supported)
+- Clean card-based timeline layout
+- Before/after value display with color badges
+- Clickable report links to triage page
+- Statistics dashboard (total logs, current page, filtered count)
+- Empty states and loading indicators
+- Toast notifications for user feedback
+
+### 🔧 Technical Implementation
+- **Backend:** Two API endpoints (`/api/admin/activity-logs` and `/api/admin/activity-logs/export`)
+- **Database:** Uses existing `audit_logs` table (no migration needed)
+- **Authentication:** Admin-only access with `requireRole('ADMIN')`
+- **Display:** Shows `actor_email` from audit logs (no complex JOINs)
+- **Export:** CSV format with all log fields and timestamp
+
+### 🐛 Issues Encountered & Fixes
+
+**Issue #1: Clerk ID Display**
+- **Problem:** Activity logs showed Clerk user IDs (e.g., `user_3DkSKV9GeH5tRl2q7sM3kALhdVW`) instead of readable names
+- **Attempted Fix:** Added LEFT JOIN with `users` table to fetch `first_name` and `last_name`
+- **Result:** 500 Internal Server Error
+- **Root Cause:** The `users` table doesn't have `first_name` and `last_name` fields (user data comes from Clerk, not database)
+- **Final Solution:** Use existing `actor_email` field from `audit_logs` table (no JOIN needed)
+- **Outcome:** ✅ Displays email addresses with fallback to "System"
+
+**Issue #2: SQL Query Table Alias**
+- **Problem:** 500 error when adding WHERE conditions with JOIN query
+- **Root Cause:** WHERE clause used bare column names (e.g., `action = ?`) instead of table alias (e.g., `al.action = ?`)
+- **Fix:** Updated all WHERE conditions to use `al.` prefix for audit_logs table
+- **Outcome:** ✅ Query executed successfully
+
+**Issue #3: Edge Case Handling**
+- **Added:** Pagination validation (page >= 1, limit 1-100)
+- **Added:** Date validation with try-catch for invalid formats
+- **Added:** Division safety for totalPages calculation
+- **Added:** Empty string handling for actor names
+- **Note:** These were implemented but reverted when we simplified to email-only display
+
+### 📚 Documentation
+- Updated README.md with Activity Logs feature
+- Added to deployed features section
+- Updated version to v2.6.0
+- Marked "Audit log export" as completed in roadmap
+- Created comprehensive CHANGELOG entry
+- Updated ADMIN_FEATURES.md with Activity Logs specification
+
+### 🎯 Supported Action Types
+1. `report_submitted` - 📝 Blue
+2. `status_changed` - 🔄 Green
+3. `severity_changed` - ⚠️ Orange
+4. `assigned` - 👤 Purple
+5. `poc_uploaded` - 📎 Indigo
+6. `report_viewed` - 👁️ Gray
+7. `report_decrypted` - 🔓 Yellow
+
+### 🔐 Security & Permissions
+- Admin-only access enforced via middleware
+- IP addresses stored as SHA-256 hashes
+- Immutable audit trail (no delete/edit)
+- CSV export respects active filters
+
 ## [2.5.0] - 2026-05-16
 
 ### 🏆 Hall of Fame System (Major Feature)
