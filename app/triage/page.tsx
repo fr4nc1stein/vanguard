@@ -63,8 +63,10 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
-  const [sortField, setSortField] = useState<keyof ReportRow | null>(null);
+  const [sortField, setSortField] = useState<keyof ReportRow>("submittedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [assignmentFilter, setAssignmentFilter] = useState<"all" | "mine" | "unassigned">("all");
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -72,6 +74,8 @@ export default function AdminDashboard() {
     if (filterStatus !== "all")   params.set("status", filterStatus);
     if (filterSeverity !== "all") params.set("severity", filterSeverity);
     if (search)                   params.set("q", search);
+    if (assignmentFilter === "mine" && currentUserEmail) params.set("assigned_to", currentUserEmail);
+    if (assignmentFilter === "unassigned") params.set("unassigned", "true");
 
     try {
       const res = await fetch(`/api/admin/reports?${params}`);
@@ -85,7 +89,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [page, filterStatus, filterSeverity, search]);
+  }, [page, filterStatus, filterSeverity, search, assignmentFilter, currentUserEmail]);
 
   // Client-side sorting of current page results
   const sortedReports = [...reports].sort((a, b) => {
@@ -135,6 +139,14 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => { fetchReports(); }, [fetchReports]);
+  
+  useEffect(() => {
+    // Get current user email from localStorage (set after first self-assignment)
+    const storedEmail = localStorage.getItem('userEmail');
+    if (storedEmail) {
+      setCurrentUserEmail(storedEmail);
+    }
+  }, []);
 
   function applySearch(e: React.FormEvent) {
     e.preventDefault();
@@ -190,6 +202,40 @@ export default function AdminDashboard() {
                 {s} {s !== "all" && stats ? `(${stats.byStatus?.[s] ?? 0})` : ""}
               </button>
             ))}
+          </div>
+
+          {/* Assignment Filter */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setAssignmentFilter("all")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                assignmentFilter === "all"
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              All Reports
+            </button>
+            <button
+              onClick={() => setAssignmentFilter("mine")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                assignmentFilter === "mine"
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              My Reports
+            </button>
+            <button
+              onClick={() => setAssignmentFilter("unassigned")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                assignmentFilter === "unassigned"
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Unassigned
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
