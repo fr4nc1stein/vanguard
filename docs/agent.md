@@ -26,12 +26,6 @@ You must have deep working knowledge of all of the following before touching thi
 
 ## Rules — Never Break These
 
-### ALL routes must declare the edge runtime
-```typescript
-export const runtime = 'edge'
-```
-This is **required on every file** in `app/api/` and on every page with data fetching. If it's missing, the CF Pages build will fail with an unhelpful error. Add it — don't ask.
-
 ### Dynamic route params are a Promise in Next.js 15+
 ```typescript
 // WRONG
@@ -98,9 +92,6 @@ To write to remote D1, you must **deploy** (`npm run deploy`).
 ### `params.id` TypeScript error (Next.js 15+)
 **Fix:** `params: Promise<{ id: string }>` + `const { id } = await context.params`
 
-### CF build fails with "not found: export const runtime"
-**Fix:** Add `export const runtime = 'edge'` to the failing route/page. Run `grep -rL "runtime" app/api/` to find routes missing it.
-
 ### `getCfEnv() error: D1 binding not found`
 **Cause:** Running `npm run dev` instead of `npm run dev:cf`  
 **Fix:** Stop the server, run `npm run dev:cf` instead
@@ -148,8 +139,6 @@ const data = await res.json()
 
 ### API Route Shape
 ```typescript
-export const runtime = 'edge'
-
 export async function POST(req: Request): Promise<Response> {
   const env = getCfEnv()
   const db = getDb(env.DB)
