@@ -77,7 +77,7 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **CSV Export** — Export analytics data for compliance
 - ✅ **Date Range Selector** — 7, 30, 90, or 365 days
 
-### � Activity Logs (v2.6.0)
+### 📋 Activity Logs (v0.6.0-dev)
 - ✅ **Centralized Activity Viewer** (`/admin/activity-logs`) — All platform activities in one place
 - ✅ **Advanced Filtering** — Filter by action type, date range, actor, report ID
 - ✅ **Timeline View** — Color-coded actions with icons (7 action types)
