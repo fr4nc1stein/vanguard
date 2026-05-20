@@ -103,6 +103,10 @@ export default function AdminReportDetail() {
   const [hallOfFameEntry, setHallOfFameEntry] = useState<{ id: string; isPublic: boolean } | null>(null);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
 
+  // Hacktivity title disclosure state
+  const [hacktivityEntry, setHacktivityEntry] = useState<{ id: string; titleDisclosed: boolean } | null>(null);
+  const [togglingTitleDisclosure, setTogglingTitleDisclosure] = useState(false);
+
   // Self-assignment state
   const [assigningToMe, setAssigningToMe] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
@@ -160,6 +164,7 @@ export default function AdminReportDetail() {
     
     fetchComments();
     fetchHallOfFameEntry();
+    fetchHacktivityEntry();
     fetchTemplates();
   }, [id]);
 
@@ -175,6 +180,21 @@ export default function AdminReportDetail() {
       }
     } catch (error) {
       console.error('[fetchHallOfFameEntry] Error:', error);
+    }
+  }
+
+  async function fetchHacktivityEntry() {
+    try {
+      const res = await fetch(`/api/hacktivity`);
+      if (res.ok) {
+        const data = await res.json();
+        const entry = data.activities?.find((e: any) => e.reportId === id);
+        if (entry) {
+          setHacktivityEntry({ id: entry.id, titleDisclosed: entry.titleDisclosed === 1 });
+        }
+      }
+    } catch (error) {
+      console.error('[fetchHacktivityEntry] Error:', error);
     }
   }
 
@@ -349,6 +369,42 @@ export default function AdminReportDetail() {
       setToast({ message: (e as Error).message, type: "error" });
     } finally {
       setTogglingVisibility(false);
+    }
+  }
+
+  async function handleToggleTitleDisclosure() {
+    if (!hacktivityEntry) return;
+    setTogglingTitleDisclosure(true);
+
+    try {
+      const res = await fetch(`/api/admin/hacktivity/${hacktivityEntry.id}/disclosure`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titleDisclosed: !hacktivityEntry.titleDisclosed,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to toggle title disclosure');
+      }
+
+      // Update local state
+      setHacktivityEntry({
+        ...hacktivityEntry,
+        titleDisclosed: !hacktivityEntry.titleDisclosed,
+      });
+
+      setToast({ 
+        message: hacktivityEntry.titleDisclosed ? 'Title will be blurred in hacktivity' : 'Title will be visible in hacktivity', 
+        type: "success" 
+      });
+      fetchHacktivityEntry();
+    } catch (e: unknown) {
+      setToast({ message: (e as Error).message, type: "error" });
+    } finally {
+      setTogglingTitleDisclosure(false);
     }
   }
 
@@ -576,6 +632,44 @@ export default function AdminReportDetail() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                       </svg>
                       Hidden - Click to Make Public
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Hacktivity Title Disclosure Toggle */}
+            {hacktivityEntry && (report?.status === 'accepted' || report?.status === 'fixed') && (
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h2 className="font-semibold text-gray-900 mb-3">📰 Hacktivity Title Disclosure</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  Control whether the report title is visible or blurred in the public hacktivity feed.
+                </p>
+                <button
+                  onClick={handleToggleTitleDisclosure}
+                  disabled={togglingTitleDisclosure}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                    hacktivityEntry.titleDisclosed
+                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {togglingTitleDisclosure ? (
+                    <>⏳ Updating...</>
+                  ) : hacktivityEntry.titleDisclosed ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Title Visible - Click to Blur
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                      Title Blurred - Click to Show
                     </>
                   )}
                 </button>
