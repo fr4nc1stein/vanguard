@@ -1,5 +1,9 @@
 /**
  * GET /api/hacktivity - Public activity feed
+ * 
+ * SECURITY: Report titles are only shown if titleDisclosed is 1 (true).
+ * When titleDisclosed is 0, the title is redacted to prevent disclosure
+ * of undisclosed vulnerability reports.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
@@ -48,8 +52,22 @@ export async function GET(_request: NextRequest) {
           console.warn(`[getHacktivity] Failed to fetch Clerk data for ${activity.researcherId}:`, err);
         }
         
+        // SECURITY: Only show title if explicitly disclosed by researcher
+        // titleDisclosed: 1 = visible, 0 = redacted
+        const displayTitle = activity.titleDisclosed === 1
+          ? activity.title
+          : '[Undisclosed]';
+
         return {
-          ...activity,
+          id: activity.id,
+          reportId: activity.reportId,
+          researcherId: activity.researcherId,
+          action: activity.action,
+          title: displayTitle,
+          severity: activity.severity,
+          points: activity.points,
+          titleDisclosed: activity.titleDisclosed,
+          timestamp: activity.timestamp,
           researcherName,
           avatarUrl,
         };

@@ -1,5 +1,9 @@
 /**
  * GET /api/reports/[id] — Fetch a single report (own only, or triager/admin)
+ * 
+ * SECURITY: The assigned_to field (triager email) is only visible to staff members.
+ * Report owners (researchers) should not see who is assigned to triage their report
+ * to maintain investigator anonymity until the report is resolved.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
@@ -90,6 +94,10 @@ export async function GET(
       ? `${decryptedBody.description}\n\n## Steps to Reproduce\n${decryptedBody.stepsToReproduce}\n\n## Impact\n${decryptedBody.impact}${decryptedBody.evidence ? `\n\n## Evidence\n${decryptedBody.evidence}` : ''}`
       : null;
 
+    // SECURITY: Only reveal assigned_to to staff, not to report owner
+    // Researchers should not know who is triaging their report
+    const assignedTo = isStaff ? report.assignedTo : null;
+
     return NextResponse.json({
       data: {
         id:          report.id,
@@ -102,7 +110,7 @@ export async function GET(
         body:        bodyText,
         cvss:        report.cvss,
         status:      report.status,
-        assigned_to: report.assignedTo,
+        assigned_to: assignedTo,
         poc_files:   pocKeys,
         created_at:  new Date(report.submittedAt).toISOString(),
         updated_at:  new Date(report.updatedAt).toISOString(),
