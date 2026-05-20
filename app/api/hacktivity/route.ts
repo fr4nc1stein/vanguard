@@ -6,6 +6,7 @@ import { getDb, getCfEnv } from '@/lib/db';
 import { hacktivity, hallOfFame } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
+import { getDisplayName } from '@/lib/redact';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -40,9 +41,7 @@ export async function GET(_request: NextRequest) {
         
         try {
           const user = await clerk.users.getUser(activity.researcherId);
-          researcherName = user.firstName && user.lastName 
-            ? `${user.firstName} ${user.lastName}`
-            : user.username || user.emailAddresses[0]?.emailAddress || activity.researcherName;
+          researcherName = getDisplayName(user);
           avatarUrl = user.imageUrl;
         } catch (err) {
           // User not found or error fetching, use stored name

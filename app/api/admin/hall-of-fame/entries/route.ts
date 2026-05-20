@@ -7,6 +7,7 @@ import { getDb, getCfEnv } from '@/lib/db';
 import { hallOfFame } from '@/lib/db/schema';
 import { desc } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
+import { getDisplayName } from '@/lib/redact';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -29,9 +30,7 @@ export async function GET(_request: NextRequest) {
         
         try {
           const user = await clerk.users.getUser(entry.researcherId);
-          researcherName = user.firstName && user.lastName 
-            ? `${user.firstName} ${user.lastName}`
-            : user.username || user.emailAddresses[0]?.emailAddress || entry.researcherName;
+          researcherName = getDisplayName(user);
           avatarUrl = user.imageUrl;
         } catch (err) {
           console.warn(`[admin entries] Failed to fetch Clerk data for ${entry.researcherId}:`, err);

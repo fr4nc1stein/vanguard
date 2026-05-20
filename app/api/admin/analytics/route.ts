@@ -7,6 +7,7 @@ import { reports } from '@/lib/db/schema';
 import { requireRole } from '@/lib/auth';
 import { sql, eq, and, gte } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
+import { getDisplayName } from '@/lib/redact';
 
 export async function GET(request: NextRequest) {
   try {
@@ -93,9 +94,7 @@ export async function GET(request: NextRequest) {
         }
         try {
           const user = await client.users.getUser(userId);
-          const name = user.firstName && user.lastName 
-            ? `${user.firstName} ${user.lastName}`
-            : user.username || user.emailAddresses[0]?.emailAddress || data.handle;
+          const name = getDisplayName(user);
           return { handle: name, count: data.count };
         } catch (err) {
           // If user not found in Clerk, use handle from report
