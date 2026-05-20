@@ -107,6 +107,7 @@ export const hacktivity = sqliteTable('hacktivity', {
   title:          text('title').notNull(),
   severity:       text('severity').notNull(),
   points:         integer('points'),
+  titleDisclosed: integer('title_disclosed').notNull().default(0), // 0 = blurred, 1 = visible
   timestamp:      integer('timestamp').notNull(),
 });
 

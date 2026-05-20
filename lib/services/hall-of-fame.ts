@@ -186,6 +186,7 @@ export async function awardPoints(
       title: redactedTitle,
       severity: severityLower,
       points,
+      titleDisclosed: 0, // Default to blurred/hidden
       timestamp: now,
     });
 

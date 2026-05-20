@@ -22,6 +22,7 @@ export async function GET(_request: NextRequest) {
         title: hacktivity.title,
         severity: hacktivity.severity,
         points: hacktivity.points,
+        titleDisclosed: hacktivity.titleDisclosed,
         timestamp: hacktivity.timestamp,
       })
       .from(hacktivity)

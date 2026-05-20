@@ -30,6 +30,7 @@ interface HacktivityEntry {
   title: string;
   severity: string;
   points: number | null;
+  titleDisclosed: number;
   timestamp: number;
   action: string;
 }
@@ -385,7 +386,9 @@ export default function HallOfFame() {
                     <div className="flex items-start gap-3 min-w-0">
                       <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${SEV[item.severity]?.dot || SEV.informational.dot}`} />
                       <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm">{item.title}</p>
+                        <p className={`font-semibold text-gray-900 text-sm ${item.titleDisclosed === 0 ? 'filter blur-sm select-none' : ''}`}>
+                          {item.titleDisclosed === 0 ? '████████████████' : item.title}
+                        </p>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-xs text-gray-500">
                           <div className="flex items-center gap-2">
                             {item.avatarUrl ? (
