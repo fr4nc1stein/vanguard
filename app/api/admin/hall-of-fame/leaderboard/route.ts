@@ -26,7 +26,7 @@ export async function GET(_request: NextRequest) {
     const clerk = await clerkClient();
     const leaderboard = await Promise.all(
       leaders.map(async (leader, index) => {
-        let researcherName = leader.researcherName;
+        let researcherName = 'Anonymous';
         let avatarUrl = null;
         
         try {

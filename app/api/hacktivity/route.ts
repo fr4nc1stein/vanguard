@@ -18,7 +18,6 @@ export async function GET(_request: NextRequest) {
         id: hacktivity.id,
         reportId: hacktivity.reportId,
         researcherId: hacktivity.researcherId,
-        researcherName: hacktivity.researcherName,
         action: hacktivity.action,
         title: hacktivity.title,
         severity: hacktivity.severity,
@@ -36,7 +35,7 @@ export async function GET(_request: NextRequest) {
     const clerk = await clerkClient();
     const activitiesWithAvatars = await Promise.all(
       activities.map(async (activity) => {
-        let researcherName = activity.researcherName;
+        let researcherName = 'Anonymous';
         let avatarUrl = null;
         
         try {
@@ -44,7 +43,7 @@ export async function GET(_request: NextRequest) {
           researcherName = getDisplayName(user);
           avatarUrl = user.imageUrl;
         } catch (err) {
-          // User not found or error fetching, use stored name
+          // User not found or error fetching, use fallback
           console.warn(`[getHacktivity] Failed to fetch Clerk data for ${activity.researcherId}:`, err);
         }
         

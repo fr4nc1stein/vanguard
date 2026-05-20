@@ -54,8 +54,7 @@ export const scopes = sqliteTable('scopes', {
 export const comments = sqliteTable('comments', {
   id:         text('id').primaryKey(),
   reportId:   text('report_id').notNull(),
-  authorId:   text('author_id').notNull(),
-  authorName: text('author_name').notNull(),
+  authorId:   text('author_id').notNull(), // Clerk user ID
   authorRole: text('author_role').notNull(), // 'USER', 'TRIAGER', 'ADMIN'
   message:    text('message').notNull(),
   createdAt:  integer('created_at').notNull(),
@@ -72,8 +71,7 @@ export const pointsConfig = sqliteTable('points_config', {
 
 // ── Researcher Stats (Auto-calculated) ───────────────────────────────────────
 export const researcherStats = sqliteTable('researcher_stats', {
-  researcherId:    text('researcher_id').primaryKey(),
-  researcherName:  text('researcher_name').notNull(),
+  researcherId:    text('researcher_id').primaryKey(), // Clerk user ID
   totalPoints:     integer('total_points').notNull().default(0),
   totalReports:    integer('total_reports').notNull().default(0),
   acceptedReports: integer('accepted_reports').notNull().default(0),
@@ -91,8 +89,7 @@ export const researcherStats = sqliteTable('researcher_stats', {
 export const hallOfFame = sqliteTable('hall_of_fame', {
   id:             text('id').primaryKey(),
   reportId:       text('report_id').notNull().unique(),
-  researcherId:   text('researcher_id').notNull(),
-  researcherName: text('researcher_name').notNull(),
+  researcherId:   text('researcher_id').notNull(), // Clerk user ID
   title:          text('title').notNull(),
   severity:       text('severity').notNull(),
   pointsAwarded:  integer('points_awarded').notNull(),
@@ -105,8 +102,7 @@ export const hallOfFame = sqliteTable('hall_of_fame', {
 export const hacktivity = sqliteTable('hacktivity', {
   id:             text('id').primaryKey(),
   reportId:       text('report_id').notNull(),
-  researcherId:   text('researcher_id').notNull(),
-  researcherName: text('researcher_name').notNull(),
+  researcherId:   text('researcher_id').notNull(), // Clerk user ID
   action:         text('action').notNull(),
   title:          text('title').notNull(),
   severity:       text('severity').notNull(),

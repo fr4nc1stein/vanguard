@@ -107,15 +107,11 @@ export async function POST(
     const now = Date.now();
     const commentId = crypto.randomUUID();
 
-    // Get author name
-    const authorName = getDisplayName(user);
-
-    // Insert comment
+    // Insert comment (name will be fetched from Clerk dynamically)
     await db.insert(comments).values({
       id: commentId,
       reportId,
       authorId: userId,
-      authorName,
       authorRole: role,
       message: data.message,
       createdAt: now,
