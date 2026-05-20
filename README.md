@@ -3,7 +3,7 @@
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
 **Live:** https://vanguard.laet4x.com  
-**Version:** v1.0.2-alpha  
+**Version:** v1.0.3-alpha  
 **Status:** 🧪 Public Alpha - Open for Testing
 
 ---
