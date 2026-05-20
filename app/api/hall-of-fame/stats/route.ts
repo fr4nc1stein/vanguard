@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
 import { researcherStats, hallOfFame } from '@/lib/db/schema';
 import { gte } from 'drizzle-orm';
+import { clerkClient } from '@clerk/nextjs/server';
+import { getDisplayName } from '@/lib/redact';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -31,19 +33,32 @@ export async function GET(_request: NextRequest) {
       .all();
 
     // Count points per researcher this month
-    const monthlyPoints: Record<string, { name: string; points: number }> = {};
+    const monthlyPoints: Record<string, { points: number }> = {};
     recentAwards.forEach(award => {
       if (!monthlyPoints[award.researcherId]) {
         monthlyPoints[award.researcherId] = {
-          name: award.researcherName,
           points: 0,
         };
       }
       monthlyPoints[award.researcherId].points += award.pointsAwarded;
     });
 
-    // Find top researcher
-    const topResearcher = Object.values(monthlyPoints).sort((a, b) => b.points - a.points)[0] || null;
+    // Find top researcher and fetch name from Clerk
+    const topEntry = Object.entries(monthlyPoints).sort((a, b) => b[1].points - a[1].points)[0];
+    let topResearcher = null;
+    
+    if (topEntry) {
+      const [researcherId, data] = topEntry;
+      let name = 'Anonymous';
+      try {
+        const clerk = await clerkClient();
+        const user = await clerk.users.getUser(researcherId);
+        name = getDisplayName(user);
+      } catch (err) {
+        console.warn(`[stats] Failed to fetch name for ${researcherId}:`, err);
+      }
+      topResearcher = { name, points: data.points };
+    }
 
     return NextResponse.json({
       totalPointsAwarded,
