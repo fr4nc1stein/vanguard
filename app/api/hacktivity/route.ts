@@ -11,6 +11,7 @@ import { getDisplayName } from '@/lib/redact';
 export async function GET(_request: NextRequest) {
   try {
     const db = getDb(getCfEnv().DB);
+    const hiddenTitle = 'Report title hidden';
     
     // Only show public entries
     const activities = await db
@@ -38,7 +39,6 @@ export async function GET(_request: NextRequest) {
       activities.map(async (activity) => {
         let researcherName = 'Anonymous';
         let avatarUrl = null;
-        const hiddenTitle = 'Report title hidden';
         const title = Boolean(activity.titleDisclosed) ? (activity.title || hiddenTitle) : hiddenTitle;
         
         try {
