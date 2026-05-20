@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest) {
     const clerk = await clerkClient();
     const leaderboardWithAvatars = await Promise.all(
       leaders.map(async (leader, index) => {
-        let researcherName = leader.researcherName;
+        let researcherName = 'Anonymous';
         let avatarUrl = null;
         
         try {
@@ -31,7 +31,7 @@ export async function GET(_request: NextRequest) {
           researcherName = getDisplayName(user);
           avatarUrl = user.imageUrl;
         } catch (err) {
-          // User not found or error fetching, use stored name
+          // User not found or error fetching, use fallback
           console.warn(`[getLeaderboard] Failed to fetch Clerk data for ${leader.researcherId}:`, err);
         }
         

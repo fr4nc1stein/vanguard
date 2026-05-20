@@ -158,17 +158,14 @@ export async function awardPoints(
       return { success: false, error: 'Report has no associated researcher' };
     }
 
-    const researcherName = await fetchResearcherName(report.clerkUserId);
-    const avatarUrl = await fetchResearcherAvatar(report.clerkUserId);
     const redactedTitle = redactReportTitle(report.title);
     const now = Date.now();
 
-    // Create hall of fame entry
+    // Create hall of fame entry (name will be fetched from Clerk dynamically)
     await db.insert(hallOfFame).values({
       id: crypto.randomUUID(),
       reportId: report.id,
       researcherId: report.clerkUserId,
-      researcherName,
       title: redactedTitle,
       severity: severityLower,
       pointsAwarded: points,
@@ -178,14 +175,13 @@ export async function awardPoints(
     });
 
     // Update researcher stats
-    await updateResearcherStats(report.clerkUserId, researcherName, avatarUrl);
+    await updateResearcherStats(report.clerkUserId);
 
-    // Create hacktivity entry
+    // Create hacktivity entry (name will be fetched from Clerk dynamically)
     await db.insert(hacktivity).values({
       id: crypto.randomUUID(),
       reportId: report.id,
       researcherId: report.clerkUserId,
-      researcherName,
       action: report.status === 'accepted' ? 'accepted' : 'resolved',
       title: redactedTitle,
       severity: severityLower,
@@ -209,7 +205,7 @@ export async function awardPoints(
     return { 
       success: true, 
       points,
-      message: `Awarded ${points} points to ${researcherName}` 
+      message: `Awarded ${points} points` 
     };
 
   } catch (error) {
@@ -227,9 +223,7 @@ export async function awardPoints(
  * Update or create researcher stats
  */
 export async function updateResearcherStats(
-  researcherId: string,
-  researcherName: string,
-  avatarUrl: string | null
+  researcherId: string
 ): Promise<void> {
   const db = getDb(getCfEnv().DB);
 
@@ -275,11 +269,10 @@ export async function updateResearcherStats(
     const now = Date.now();
 
     if (existing) {
-      // Update existing stats
+      // Update existing stats (name fetched from Clerk dynamically)
       await db
         .update(researcherStats)
         .set({
-          researcherName,
           totalPoints,
           totalReports,
           acceptedReports,
@@ -294,10 +287,9 @@ export async function updateResearcherStats(
         })
         .where(eq(researcherStats.researcherId, researcherId));
     } else {
-      // Create new stats
+      // Create new stats (name fetched from Clerk dynamically)
       await db.insert(researcherStats).values({
         researcherId,
-        researcherName,
         totalPoints,
         totalReports,
         acceptedReports,
@@ -357,20 +349,22 @@ export async function getLeaderboard(limit: number = 100) {
       .limit(limit)
       .all();
 
-    // Add avatars from Clerk (with error handling)
+    // Add names and avatars from Clerk (with error handling)
     const leaderboardWithAvatars = await Promise.all(
       leaders.map(async (leader, index) => {
+        let researcherName = 'Anonymous';
         let avatarUrl = null;
         try {
+          researcherName = await fetchResearcherName(leader.researcherId);
           avatarUrl = await fetchResearcherAvatar(leader.researcherId);
         } catch (err) {
-          // Silently fail avatar fetch, will use initials fallback
-          console.warn(`[getLeaderboard] Failed to fetch avatar for ${leader.researcherId}:`, err);
+          // Silently fail Clerk fetch, will use fallback
+          console.warn(`[getLeaderboard] Failed to fetch Clerk data for ${leader.researcherId}:`, err);
         }
         return {
           rank: index + 1,
           researcherId: leader.researcherId,
-          researcherName: leader.researcherName,
+          researcherName,
           avatarUrl,
           totalPoints: leader.totalPoints,
           acceptedReports: leader.acceptedReports,
@@ -409,18 +403,21 @@ export async function getHacktivity(limit: number = 100) {
       .limit(limit)
       .all();
 
-    // Add avatars from Clerk (with error handling)
+    // Add names and avatars from Clerk (with error handling)
     const activitiesWithAvatars = await Promise.all(
       activities.map(async (activity) => {
+        let researcherName = 'Anonymous';
         let avatarUrl = null;
         try {
+          researcherName = await fetchResearcherName(activity.researcherId);
           avatarUrl = await fetchResearcherAvatar(activity.researcherId);
         } catch (err) {
-          // Silently fail avatar fetch, will use initials fallback
-          console.warn(`[getHacktivity] Failed to fetch avatar for ${activity.researcherId}:`, err);
+          // Silently fail Clerk fetch, will use fallback
+          console.warn(`[getHacktivity] Failed to fetch Clerk data for ${activity.researcherId}:`, err);
         }
         return {
           ...activity,
+          researcherName,
           avatarUrl,
         };
       })
