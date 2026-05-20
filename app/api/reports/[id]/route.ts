@@ -9,6 +9,7 @@ import { decryptText } from '@/lib/crypto';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { getSessionRole, hasRole } from '@/lib/auth';
 import { logAudit, getAuditLog } from '@/lib/audit';
+import { getDisplayName } from '@/lib/redact';
 
 export async function GET(
   request: NextRequest,
@@ -52,9 +53,7 @@ export async function GET(
       try {
         const client = await clerkClient();
         const reporter = await client.users.getUser(report.clerkUserId);
-        reporterName = reporter.firstName && reporter.lastName 
-          ? `${reporter.firstName} ${reporter.lastName}`.trim()
-          : reporter.username || reporter.emailAddresses?.[0]?.emailAddress || reporterName;
+        reporterName = getDisplayName(reporter);
       } catch (err) {
         console.warn('[GET /api/reports/[id]] Failed to fetch reporter name:', err);
       }
@@ -68,9 +67,7 @@ export async function GET(
           try {
             const client = await clerkClient();
             const actor = await client.users.getUser(log.actorId);
-            actorName = actor.firstName && actor.lastName 
-              ? `${actor.firstName} ${actor.lastName}`.trim()
-              : actor.username || actor.emailAddresses?.[0]?.emailAddress || actorName;
+            actorName = getDisplayName(actor);
           } catch (err) {
             // Fallback to email or ID if Clerk fetch fails
           }

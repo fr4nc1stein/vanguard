@@ -17,6 +17,7 @@ import { encryptText, hashValue } from '@/lib/crypto';
 import { ReportSubmitSchema } from '@/lib/validation';
 import { logAudit } from '@/lib/audit';
 import { auth } from '@clerk/nextjs/server';
+import { redactPII } from '@/lib/redact';
 
 function generateRefId(severity: string): string {
   const year = new Date().getFullYear();
@@ -85,6 +86,9 @@ export async function POST(request: NextRequest) {
     const reportId  = crypto.randomUUID();
     const now       = Date.now();
 
+    // Redact PII from title for privacy
+    const sanitizedTitle = redactPII(data.title.trim());
+
     await db.insert(reports).values({
       id:             reportId,
       refId,
@@ -94,7 +98,7 @@ export async function POST(request: NextRequest) {
       target:         data.target,
       vulnType:       data.vulnType,
       severity:       data.severity,
-      title:          data.title.trim(),
+      title:          sanitizedTitle,
       bodyEncrypted:  bodyEnc.ciphertext,
       bodyIv:         bodyEnc.iv,
       cvss:           data.cvss?.trim() || null,
