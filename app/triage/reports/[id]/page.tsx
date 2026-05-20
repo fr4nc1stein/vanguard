@@ -43,6 +43,16 @@ interface Comment {
   createdAt: number;
 }
 
+interface ResponseTemplate {
+  id: string;
+  name: string;
+  category: string;
+  subject: string | null;
+  body: string;
+  variables: string;
+  is_active: number;
+}
+
 const SEVERITY_LEVELS = ["Critical", "High", "Medium", "Low", "Info"] as const;
 
 // Valid status transitions (mirrors backend state machine)
@@ -84,6 +94,10 @@ export default function AdminReportDetail() {
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  
+  // Response templates state
+  const [templates, setTemplates] = useState<ResponseTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
 
   // Hall of Fame visibility state
   const [hallOfFameEntry, setHallOfFameEntry] = useState<{ id: string; isPublic: boolean } | null>(null);
@@ -146,6 +160,7 @@ export default function AdminReportDetail() {
     
     fetchComments();
     fetchHallOfFameEntry();
+    fetchTemplates();
   }, [id]);
 
   async function fetchHallOfFameEntry() {
@@ -172,6 +187,45 @@ export default function AdminReportDetail() {
       }
     } catch (err) {
       console.error("[fetchComments]", err);
+    }
+  }
+
+  async function fetchTemplates() {
+    try {
+      const res = await fetch('/api/admin/templates?active_only=true');
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(data.templates || []);
+      }
+    } catch (err) {
+      console.error("[fetchTemplates]", err);
+    }
+  }
+
+  function handleTemplateSelect(templateId: string) {
+    setSelectedTemplate(templateId);
+    if (!templateId) return;
+    
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      // Replace variables in template body
+      let body = template.body;
+      
+      // Common variable replacements
+      const replacements: Record<string, string> = {
+        reporter_name: report?.handle || 'Researcher',
+        ref_id: report?.ref_id || '',
+        title: report?.title || '',
+        severity: report?.severity || '',
+        target: report?.target || '',
+      };
+      
+      Object.entries(replacements).forEach(([key, value]) => {
+        const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        body = body.replace(regex, value);
+      });
+      
+      setNewComment(body);
     }
   }
 
@@ -437,6 +491,27 @@ export default function AdminReportDetail() {
 
               {/* New Comment Form */}
               <form onSubmit={handleSubmitComment} className="space-y-3">
+                {/* Response Templates Dropdown */}
+                {templates.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      📋 Use Response Template
+                    </label>
+                    <select
+                      value={selectedTemplate}
+                      onChange={(e) => handleTemplateSelect(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select a template...</option>
+                      {templates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name} ({template.category})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
                 <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
