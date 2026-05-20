@@ -13,7 +13,10 @@
     "deploy": "opennextjs-cloudflare build && wrangler deploy",
     "db:migrate:local": "wrangler d1 execute vanguard-security --local --file=migrations/0001_schema.sql",
     "db:migrate:remote": "wrangler d1 execute vanguard-security --file=migrations/0001_schema.sql",
-    "backfill:hall-of-fame": "tsx scripts/backfill-hall-of-fame.ts"
+    "backfill:hall-of-fame": "tsx scripts/backfill-hall-of-fame.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.2",
@@ -28,15 +31,19 @@
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.19.8",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.41",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/ui": "^4.1.7",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.0.0",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.1",
     "typescript": "^5",
+    "vitest": "^4.1.7",
     "wrangler": "^4.86.0"
   }
 }

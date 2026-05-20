@@ -1,0 +1,48 @@
+# Cloudflare Workers / Pages Configuration
+# 
+# This is a template configuration for Vanguard VDP.
+# Copy this file to wrangler.toml and update with your values.
+#
+# Required secrets (set via `wrangler secret put`):
+#   - CLOUDFLARE_ACCOUNT_ID
+#   - CLOUDFLARE_API_TOKEN
+#   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+#   - CLERK_SECRET_KEY
+#   - ENCRYPTION_KEY
+
+name = "vanguard-vdp"
+compatibility_date = "2024-01-01"
+
+# Account configuration
+# account_id = "your-account-id"  # Set via CLOUDFLARE_ACCOUNT_ID secret
+
+# KV Namespaces
+# For distributed rate limiting across multiple workers
+# [[kv_namespaces]]
+#   binding = "RATE_LIMIT_KV"
+#   id = "your-kv-namespace-id"  # Create with: wrangler kv:namespace create "rate_limit"
+
+# D1 Databases
+# [[d1_databases]]
+#   binding = "DB"
+#   database_name = "vanguard-security"
+#   database_id = "your-d1-database-id"  # Create with: wrangler d1 create vanguard-security
+
+# Environment-specific overrides
+[env.production]
+name = "vanguard-vdp"
+
+[env.staging]
+name = "vanguard-vdp-staging"
+
+# Build configuration
+main = ".open-next/worker/index.js"
+assets = ".open-next/assets"
+
+# Custom build command (handled by npm scripts)
+# build_command = "npm run pages:build"
+
+# Development settings
+[dev]
+port = 8787
+local_protocol = "http"
