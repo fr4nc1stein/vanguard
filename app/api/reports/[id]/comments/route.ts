@@ -8,6 +8,7 @@ import { comments, reports } from '@/lib/db/schema';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
+import { getDisplayName } from '@/lib/redact';
 
 const CreateCommentSchema = z.object({
   message: z.string().min(1).max(5000),
@@ -107,9 +108,7 @@ export async function POST(
     const commentId = crypto.randomUUID();
 
     // Get author name
-    const authorName = user.firstName && user.lastName
-      ? `${user.firstName} ${user.lastName}`
-      : user.username || user.emailAddresses[0]?.emailAddress || 'User';
+    const authorName = getDisplayName(user);
 
     // Insert comment
     await db.insert(comments).values({
