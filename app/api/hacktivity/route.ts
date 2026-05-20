@@ -38,6 +38,7 @@ export async function GET(_request: NextRequest) {
       activities.map(async (activity) => {
         let researcherName = 'Anonymous';
         let avatarUrl = null;
+        const title = activity.titleDisclosed === 1 ? activity.title : '********';
         
         try {
           const user = await clerk.users.getUser(activity.researcherId);
@@ -50,6 +51,7 @@ export async function GET(_request: NextRequest) {
         
         return {
           ...activity,
+          title,
           researcherName,
           avatarUrl,
         };
