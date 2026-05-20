@@ -370,7 +370,7 @@ export default function TemplatesManagementPage() {
                   required
                   maxLength={100}
                   placeholder="e.g., Duplicate Report"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -383,7 +383,7 @@ export default function TemplatesManagementPage() {
                   value={formCategory}
                   onChange={(e) => setFormCategory(e.target.value as TemplateCategory)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 capitalize"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 capitalize"
                 >
                   {TEMPLATE_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat} className="capitalize">
@@ -404,7 +404,7 @@ export default function TemplatesManagementPage() {
                   onChange={(e) => setFormSubject(e.target.value)}
                   maxLength={200}
                   placeholder="For future email integration"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -420,7 +420,7 @@ export default function TemplatesManagementPage() {
                   rows={8}
                   maxLength={5000}
                   placeholder="Use {{variable_name}} for dynamic content..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
                 />
                 <p className="text-xs text-gray-500 mt-1">{formBody.length} / 5000 characters</p>
               </div>
