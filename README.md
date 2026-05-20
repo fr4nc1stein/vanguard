@@ -3,8 +3,30 @@
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
 **Live:** https://vanguard.laet4x.com  
-**Version:** v1.0.0-alpha  
+**Version:** v1.0.1-alpha  
 **Status:** 🧪 Public Alpha - Open for Testing
+
+---
+
+## 📸 Screenshots
+
+### Landing Page
+![Landing Page](screenshots/landing-page.png)
+*Modern, clean interface with clear call-to-action for vulnerability submissions*
+
+### Researcher Submission
+![Researcher Submission](screenshots/researcher-submission.png)
+*Encrypted report submission with comprehensive vulnerability details*
+
+### Triager Dashboard
+![Triager Dashboard](screenshots/triager-dashboard.png)
+*Complete triage workflow with filtering, search, and status management*
+
+### Admin Panel
+![Admin Panel](screenshots/admin.png)
+*Comprehensive admin controls for analytics, users, and system configuration*
+
+---
 
 ## Documentation
 
