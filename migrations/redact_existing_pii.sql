@@ -44,7 +44,7 @@ WHERE
   OR title LIKE '%token%'
   OR title LIKE '%password%';
 
--- Verification query for comments:
+-- Verification query for comments (messages):
 SELECT 
   id,
   report_id,
@@ -61,3 +61,30 @@ WHERE
   OR message LIKE '%api%key%'
   OR message LIKE '%token%'
   OR message LIKE '%password%';
+
+-- Verification query for comments (author names with emails):
+SELECT 
+  id,
+  report_id,
+  author_name,
+  author_role
+FROM comments
+WHERE 
+  author_name LIKE '%@%';
+
+-- ============================================================================
+-- REDACTION COMMANDS
+-- ============================================================================
+
+-- Redact emails from comment author names
+-- This replaces any author_name that contains an email with 'Researcher'
+UPDATE comments 
+SET author_name = 'Researcher' 
+WHERE author_name LIKE '%@%';
+
+-- Verify redaction was successful
+SELECT COUNT(*) as remaining_emails 
+FROM comments 
+WHERE author_name LIKE '%@%';
+
+-- Expected result: remaining_emails = 0
