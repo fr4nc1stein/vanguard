@@ -18,6 +18,7 @@ import { ReportSubmitSchema } from '@/lib/validation';
 import { logAudit } from '@/lib/audit';
 import { auth } from '@clerk/nextjs/server';
 import { redactPII } from '@/lib/redact';
+import { rateLimit, getClientIP, createRateLimitResponse } from '@/lib/middleware/rate-limit';
 
 function generateRefId(severity: string): string {
   const year = new Date().getFullYear();
@@ -29,6 +30,17 @@ function generateRefId(severity: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // ── Rate limiting — prevent spam submissions ─────────────────────────────
+  const clientIp = getClientIP(request);
+  const rateLimitResult = await rateLimit({
+    key: clientIp,
+    limit: 3,    // 3 submissions per minute
+    window: 60,
+  });
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
   try {
     // ── Auth check — submission requires sign-in ────────────────────────────
     const { userId } = await auth();
