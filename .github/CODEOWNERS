@@ -1,0 +1,18 @@
+# Code Ownership
+# Add team members or groups who should be automatically requested for review
+
+# Default owners for everything
+* @vanguard-team
+
+# Security and infrastructure
+.github/** @vanguard-team/security
+lib/crypto.ts @vanguard-team/security
+lib/auth.ts @vanguard-team/security
+
+# Database and migrations
+lib/db/** @vanguard-team/backend
+migrations/** @vanguard-team/backend
+
+# Frontend components
+app/** @vanguard-team/frontend
+components/** @vanguard-team/frontend
