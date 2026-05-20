@@ -137,6 +137,8 @@ export default function SiteHeader() {
               </SignInButton>
             )}
           </div>
+
+          <GitHubStarButton />
         </nav>
 
         {/* Mobile hamburger */}
