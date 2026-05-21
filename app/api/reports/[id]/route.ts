@@ -81,7 +81,6 @@ export async function GET(
           action:     log.action,
           actor_id:   log.actorId,
           actor_name: actorName,
-          actor_email: log.actorEmail,
           old_value:  log.oldValue,
           new_value:  log.newValue,
           timestamp:  new Date(log.timestamp).toISOString(),
