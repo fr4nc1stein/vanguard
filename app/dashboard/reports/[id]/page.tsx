@@ -218,7 +218,7 @@ export default function ResearcherReportDetailPage() {
           {/* Report Body */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <h3 className="font-semibold text-gray-900 mb-3">Description</h3>
-            <div className="prose prose-sm max-w-none text-gray-700 [&_h2]:font-bold [&_h2]:text-base [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-gray-900 [&_h3]:font-semibold [&_h3]:text-sm [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:mb-3 [&_ol]:mb-3">
+            <div className="prose prose-sm max-w-none text-gray-700 break-words overflow-wrap-anywhere [&_h2]:font-bold [&_h2]:text-base [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-gray-900 [&_h3]:font-semibold [&_h3]:text-sm [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:mb-3 [&_ol]:mb-3 [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_code]:break-all">
               <ReactMarkdown>{report.body}</ReactMarkdown>
             </div>
           </div>

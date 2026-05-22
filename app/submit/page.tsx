@@ -1,28 +1,18 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 
-// ─── In-scope Vanguard VDP targets ───────────────────────────────────────────
-// Update this list as new platforms are added to the program.
-const SCOPE_TARGETS = [
-  {
-    id: "vanguard-laet4x",
-    name: "vanguard.laet4x.com",
-    url: "https://vanguard.laet4x.com",
-    desc: "Vanguard VDP platform",
-    type: "Web App",
-  },
-  {
-    id: "laet4x",
-    name: "laet4x.com",
-    url: "https://laet4x.com",
-    desc: "Main laet4x platform and services",
-    type: "Web App",
-  },
-] as const;
+// ─── Scope interface ──────────────────────────────────────────────────────────
+interface Scope {
+  id: string;
+  domain: string;
+  description: string | null;
+  targetType: string;
+  status: string;
+}
 
 // ─── Vulnerability categories ─────────────────────────────────────────────────
 const VULN_TYPES = [
@@ -156,6 +146,26 @@ export default function SubmitReport() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [referenceId, setReferenceId] = useState<string | null>(null);
+  const [scopes, setScopes] = useState<Scope[]>([]);
+  const [loadingScopes, setLoadingScopes] = useState(true);
+
+  // Fetch active scopes from API
+  useEffect(() => {
+    async function fetchScopes() {
+      try {
+        const res = await fetch('/api/scopes');
+        if (res.ok) {
+          const data = await res.json();
+          setScopes(data.scopes || []);
+        }
+      } catch (err) {
+        console.error('[fetchScopes] Error:', err);
+      } finally {
+        setLoadingScopes(false);
+      }
+    }
+    fetchScopes();
+  }, []);
   function set(field: keyof FormData, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -334,11 +344,12 @@ export default function SubmitReport() {
                   onChange={(e) => set("target", e.target.value)}
                   className={inputCls(errors.target)}
                   data-error={errors.target ? true : undefined}
+                  disabled={loadingScopes}
                 >
-                  <option value="">Select a target…</option>
-                  {SCOPE_TARGETS.map((t) => (
-                    <option key={t.id} value={t.name}>
-                      {t.name}
+                  <option value="">{loadingScopes ? 'Loading scopes...' : 'Select a target…'}</option>
+                  {scopes.map((scope) => (
+                    <option key={scope.id} value={scope.domain}>
+                      {scope.domain}
                     </option>
                   ))}
                 </select>
