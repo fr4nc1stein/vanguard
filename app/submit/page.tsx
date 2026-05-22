@@ -305,25 +305,25 @@ export default function SubmitReport() {
         {/* In-scope targets info */}
         <div className="bg-blue-800 border border-blue-700 rounded-xl p-5">
           <h3 className="font-semibold text-white mb-3">📋 In-Scope Targets</h3>
-          <div className="grid sm:grid-cols-2 gap-2">
-            {SCOPE_TARGETS.filter((t) => t.url).map((t) => (
-              <div key={t.id} className="flex items-start gap-2 text-sm">
-                <span className="w-2 h-2 bg-blue-300 rounded-full flex-shrink-0 mt-1.5" />
-                <div>
-                  <a
-                    href={t.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-300 font-medium hover:underline"
-                  >
-                    {t.name}
-                  </a>
-                  <span className="text-blue-400 text-xs ml-1.5">({t.type})</span>
-                  <p className="text-blue-400 text-xs mt-0.5">{t.desc}</p>
+          {loadingScopes ? (
+            <div className="text-center py-4 text-blue-300 text-sm">Loading scopes...</div>
+          ) : scopes.length === 0 ? (
+            <div className="text-center py-4 text-blue-300 text-sm">No active scopes available</div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-2">
+              {scopes.map((scope) => (
+                <div key={scope.id} className="flex items-start gap-2 text-sm">
+                  <span className="w-2 h-2 bg-blue-300 rounded-full flex-shrink-0 mt-1.5" />
+                  <div>
+                    <span className="text-blue-300 font-medium">{scope.domain}</span>
+                    {scope.description && (
+                      <p className="text-xs text-blue-400 mt-0.5">{scope.description}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           <p className="text-xs text-blue-400 mt-4">
             <Link href="/" className="hover:underline">See full scope rules and out-of-scope exclusions →</Link>
           </p>
