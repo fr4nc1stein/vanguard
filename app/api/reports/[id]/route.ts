@@ -100,7 +100,22 @@ export async function GET(
 
     // SECURITY: Only reveal assigned_to to staff, not to report owner
     // Researchers should not know who is triaging their report
-    const assignedTo = isStaff ? report.assignedTo : null;
+    let assignedTo: string | null = null;
+    if (isStaff && report.assignedTo) {
+      // Fetch triager name from Clerk instead of showing email
+      try {
+        const client = await clerkClient();
+        const triager = await client.users.getUser({ emailAddress: [report.assignedTo] });
+        if (triager.data && triager.data.length > 0) {
+          assignedTo = getDisplayName(triager.data[0]);
+        } else {
+          assignedTo = report.assignedTo; // Fallback to email if not found
+        }
+      } catch (err) {
+        console.warn('[GET /api/reports/[id]] Failed to fetch triager name:', err);
+        assignedTo = report.assignedTo; // Fallback to email on error
+      }
+    }
 
     return NextResponse.json({
       data: {
