@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import ReportStatusBadge from "../../../components/ReportStatusBadge";
-import AuditLogTimeline, { AuditEntry } from "../../../components/AuditLogTimeline";
+import UnifiedTimeline, { TimelineEntry, TimelineComment, TimelineAuditLog } from "../../../components/UnifiedTimeline";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,7 +30,17 @@ interface ReportDetail {
   poc_files: string[];
   created_at: string;
   updated_at: string;
-  audit_logs?: AuditEntry[];
+  audit_logs?: Array<{
+    id: string;
+    actor_name?: string | null;
+    action: string;
+    oldValue?: string | null;
+    newValue?: string | null;
+    old_value?: string | null;
+    new_value?: string | null;
+    timestamp: number | string;
+    isInternal?: boolean;
+  }>;
 }
 
 interface Comment {
@@ -40,6 +50,7 @@ interface Comment {
   authorName: string;
   authorRole: string;
   message: string;
+  isInternal: number;
   createdAt: number;
 }
 
@@ -92,6 +103,7 @@ export default function AdminReportDetail() {
   // Comments state
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [isInternalComment, setIsInternalComment] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   
@@ -258,14 +270,19 @@ export default function AdminReportDetail() {
       const res = await fetch(`/api/reports/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: newComment }),
+        body: JSON.stringify({ 
+          message: newComment,
+          isInternal: isInternalComment,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to post comment");
 
       setNewComment("");
+      setIsInternalComment(false);
+      setSelectedTemplate("");
       await fetchComments();
-      setToast({ message: "Comment posted successfully", type: "success" });
+      setToast({ message: isInternalComment ? "Internal note posted" : "Comment posted successfully", type: "success" });
     } catch (err) {
       console.error("[handleSubmitComment]", err);
       setToast({ message: "Failed to post comment. Please try again.", type: "error" });
@@ -510,39 +527,40 @@ export default function AdminReportDetail() {
               </div>
             )}
 
-            {/* Communication Section */}
+            {/* Unified Timeline: Communication & Activity Logs */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">💬 Communication with Researcher</h2>
+              <h2 className="font-semibold text-gray-900 mb-4">� Activity & Communication</h2>
               <p className="text-sm text-gray-500 mb-6">
-                Discuss this report with the researcher. All communication is visible to both parties.
+                All activity, comments, and internal notes for this report.
               </p>
 
-              {/* Comments List */}
-              <div className="space-y-4 mb-6">
-                {comments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400 text-sm">
-                    No comments yet. Start the conversation below.
-                  </div>
-                ) : (
-                  comments.map((comment) => (
-                    <div key={comment.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-gray-900 text-sm">{comment.authorName}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          comment.authorRole === 'ADMIN' ? 'bg-red-100 text-red-700' :
-                          comment.authorRole === 'TRIAGER' ? 'bg-purple-100 text-purple-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
-                          {comment.authorRole}
-                        </span>
-                        <span className="text-xs text-gray-400 ml-auto">
-                          {new Date(comment.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.message}</p>
-                    </div>
-                  ))
-                )}
+              {/* Timeline */}
+              <div className="mb-6">
+                <UnifiedTimeline 
+                  entries={[
+                    ...comments.map((c): TimelineComment => ({
+                      type: 'comment',
+                      id: c.id,
+                      authorId: c.authorId,
+                      authorName: c.authorName,
+                      authorRole: c.authorRole,
+                      message: c.message,
+                      isInternal: c.isInternal === 1,
+                      timestamp: c.createdAt,
+                    })),
+                    ...(report?.audit_logs || []).map((log): TimelineAuditLog => ({
+                      type: 'audit',
+                      id: log.id,
+                      actorName: log.actor_name || 'System',
+                      action: log.action,
+                      oldValue: log.oldValue || log.old_value,
+                      newValue: log.newValue || log.new_value,
+                      isInternal: log.isInternal || false,
+                      timestamp: typeof log.timestamp === 'string' ? new Date(log.timestamp).getTime() : log.timestamp,
+                    })),
+                  ]}
+                  isStaff={true}
+                />
               </div>
 
               {/* New Comment Form */}
@@ -571,30 +589,40 @@ export default function AdminReportDetail() {
                 <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Reply to the researcher or request additional information..."
+                  placeholder="Reply to the researcher or add an internal note..."
                   rows={4}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   disabled={submittingComment}
                 />
+                
+                {/* Internal Comment Toggle */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="internal-comment"
+                    checked={isInternalComment}
+                    onChange={(e) => setIsInternalComment(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <label htmlFor="internal-comment" className="text-sm text-gray-700">
+                    🔒 Internal note (only visible to triagers and admins)
+                  </label>
+                </div>
+                
                 <div className="flex justify-end">
                   <button
                     type="submit"
                     disabled={submittingComment || !newComment.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`px-4 py-2 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isInternalComment ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
-                    {submittingComment ? "Posting..." : "Post Comment"}
+                    {submittingComment ? "Posting..." : isInternalComment ? "Post Internal Note" : "Post Comment"}
                   </button>
                 </div>
               </form>
             </div>
 
-            {/* Audit log */}
-            {report.audit_logs && report.audit_logs.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="font-semibold text-gray-900 mb-4">📋 Activity Log</h2>
-                <AuditLogTimeline logs={report.audit_logs} />
-              </div>
-            )}
           </div>
 
           {/* ── Right: Triage panel ───────────────────────────────────────── */}
