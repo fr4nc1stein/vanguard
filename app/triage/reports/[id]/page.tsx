@@ -306,6 +306,25 @@ export default function AdminReportDetail() {
     }
   }
 
+  async function handleToggleInternal(entryId: string, entryType: 'comment' | 'audit', newValue: boolean) {
+    if (entryType === 'comment') {
+      setComments(prev => prev.map(c => 
+        c.id === entryId ? { ...c, isInternal: newValue ? 1 : 0 } : c
+      ));
+    } else {
+      setReport(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          audit_logs: prev.audit_logs?.map(log =>
+            log.id === entryId ? { ...log, isInternal: newValue } : log
+          ),
+        };
+      });
+    }
+    setToast({ message: newValue ? 'Marked as internal' : 'Marked as public', type: 'success' });
+  }
+
   async function applyTransition(newStatus: string) {
     if (!report) return;
     setTriageLoading(newStatus);
@@ -570,6 +589,8 @@ export default function AdminReportDetail() {
                     })),
                   ]}
                   isStaff={true}
+                  reportId={id}
+                  onToggleInternal={handleToggleInternal}
                 />
               </div>
 
