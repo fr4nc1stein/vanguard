@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 // ─── Unified Timeline Entry Types ────────────────────────────────────────────
 
@@ -58,9 +58,13 @@ function getRoleBadgeClass(role: string): string {
 interface UnifiedTimelineProps {
   entries: TimelineEntry[];
   isStaff?: boolean;
+  reportId?: string;
+  onToggleInternal?: (entryId: string, entryType: 'comment' | 'audit', newValue: boolean) => void;
 }
 
-export default function UnifiedTimeline({ entries, isStaff = false }: UnifiedTimelineProps) {
+export default function UnifiedTimeline({ entries, isStaff = false, reportId, onToggleInternal }: UnifiedTimelineProps) {
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
   // Filter out internal entries for non-staff users
   const visibleEntries = isStaff 
     ? entries 
@@ -68,6 +72,28 @@ export default function UnifiedTimeline({ entries, isStaff = false }: UnifiedTim
 
   // Sort by timestamp (newest first)
   const sortedEntries = [...visibleEntries].sort((a, b) => b.timestamp - a.timestamp);
+
+  async function handleToggle(entry: TimelineEntry) {
+    if (!isStaff || !reportId || !onToggleInternal) return;
+    
+    setTogglingId(entry.id);
+    try {
+      const endpoint = entry.type === 'comment'
+        ? `/api/reports/${reportId}/comments/${entry.id}/toggle-internal`
+        : `/api/reports/${reportId}/audit-logs/${entry.id}/toggle-internal`;
+      
+      const res = await fetch(endpoint, { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed to toggle');
+      
+      const data = await res.json();
+      onToggleInternal(entry.id, entry.type, data.isInternal);
+    } catch (err) {
+      console.error('Failed to toggle internal flag:', err);
+      alert('Failed to toggle internal flag');
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   if (sortedEntries.length === 0) {
     return <p className="text-gray-400 text-sm italic">No activity yet.</p>;
@@ -90,15 +116,27 @@ export default function UnifiedTimeline({ entries, isStaff = false }: UnifiedTim
             {entry.type === 'comment' ? (
               // ─── Comment Entry ───────────────────────────────────────────
               <>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-semibold text-gray-900">{entry.authorName}</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeClass(entry.authorRole)}`}>
-                    {entry.authorRole}
-                  </span>
-                  {entry.isInternal && (
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                      🔒 Internal
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900">{entry.authorName}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeClass(entry.authorRole)}`}>
+                      {entry.authorRole}
                     </span>
+                    {entry.isInternal && (
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                        🔒 Internal
+                      </span>
+                    )}
+                  </div>
+                  {isStaff && onToggleInternal && (
+                    <button
+                      onClick={() => handleToggle(entry)}
+                      disabled={togglingId === entry.id}
+                      className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                      title={entry.isInternal ? "Make public" : "Make internal"}
+                    >
+                      {togglingId === entry.id ? '...' : entry.isInternal ? '👁️ Make Public' : '🔒 Make Internal'}
+                    </button>
                   )}
                 </div>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere">{entry.message}</p>
@@ -111,14 +149,26 @@ export default function UnifiedTimeline({ entries, isStaff = false }: UnifiedTim
             ) : (
               // ─── Audit Log Entry ─────────────────────────────────────────
               <>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-semibold text-gray-800">
-                    {ACTION_LABELS[entry.action] ?? entry.action}
-                  </p>
-                  {entry.isInternal && (
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                      🔒 Internal
-                    </span>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {ACTION_LABELS[entry.action] ?? entry.action}
+                    </p>
+                    {entry.isInternal && (
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                        🔒 Internal
+                      </span>
+                    )}
+                  </div>
+                  {isStaff && onToggleInternal && (
+                    <button
+                      onClick={() => handleToggle(entry)}
+                      disabled={togglingId === entry.id}
+                      className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                      title={entry.isInternal ? "Make public" : "Make internal"}
+                    >
+                      {togglingId === entry.id ? '...' : entry.isInternal ? '👁️ Make Public' : '🔒 Make Internal'}
+                    </button>
                   )}
                 </div>
 
