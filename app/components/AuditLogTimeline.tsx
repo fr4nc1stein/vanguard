@@ -3,10 +3,6 @@ import React from "react";
 // Minimal interface — accepts data from both the DB layer and API responses
 export interface AuditEntry {
   id: string;
-  actorEmail?: string | null;
-  actorId?: string | null;
-  actor_email?: string | null;
-  actor_id?: string | null;
   actor_name?: string | null;
   action: string;
   oldValue?: string | null;
@@ -14,6 +10,7 @@ export interface AuditEntry {
   old_value?: string | null;
   new_value?: string | null;
   timestamp: number | string;
+  isInternal?: boolean;
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -66,7 +63,7 @@ export default function AuditLogTimeline({ logs }: { logs: AuditEntry[] }) {
             )}
 
             <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-              <span>{log.actor_name ?? log.actorEmail ?? log.actor_email ?? log.actorId ?? log.actor_id}</span>
+              <span>{log.actor_name || 'System'}</span>
               <span>·</span>
               <span>{formatTs(log.timestamp)}</span>
             </div>

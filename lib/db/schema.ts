@@ -35,6 +35,7 @@ export const auditLogs = sqliteTable('audit_logs', {
   oldValue:   text('old_value'),
   newValue:   text('new_value'),
   ipHash:     text('ip_hash'),
+  isInternal: integer('is_internal').notNull().default(0), // 0 = public, 1 = internal (triager/admin only)
   timestamp:  integer('timestamp').notNull(),
 });
 
@@ -57,6 +58,7 @@ export const comments = sqliteTable('comments', {
   authorId:   text('author_id').notNull(), // Clerk user ID
   authorRole: text('author_role').notNull(), // 'USER', 'TRIAGER', 'ADMIN'
   message:    text('message').notNull(),
+  isInternal: integer('is_internal').notNull().default(0), // 0 = public, 1 = internal (triager/admin only)
   createdAt:  integer('created_at').notNull(),
 });
 

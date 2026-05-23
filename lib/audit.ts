@@ -18,6 +18,9 @@ export type AuditAction =
   | 'report_viewed'
   | 'report_decrypted';
 
+// Internal actions that should only be visible to triagers/admins
+const INTERNAL_ACTIONS: AuditAction[] = ['assigned', 'severity_changed'];
+
 interface LogAuditParams {
   db:         DbClient;
   reportId:   string;
@@ -39,6 +42,9 @@ export async function logAudit(params: LogAuditParams): Promise<void> {
       ? await hashValue(params.ipAddress)
       : undefined;
 
+    // Determine if this action should be internal-only
+    const isInternal = INTERNAL_ACTIONS.includes(params.action) ? 1 : 0;
+
     await params.db.insert(auditLogs).values({
       id:         crypto.randomUUID(),
       reportId:   params.reportId,
@@ -48,6 +54,7 @@ export async function logAudit(params: LogAuditParams): Promise<void> {
       oldValue:   params.oldValue,
       newValue:   params.newValue,
       ipHash,
+      isInternal,
       timestamp:  Date.now(),
     });
   } catch (err) {

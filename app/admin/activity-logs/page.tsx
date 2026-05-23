@@ -8,7 +8,7 @@ interface ActivityLog {
   id: string;
   report_id: string | null;
   actor_id: string;
-  actor_email: string | null;
+  actor_name?: string;
   action: string;
   old_value: string | null;
   new_value: string | null;
@@ -157,7 +157,7 @@ export default function ActivityLogsPage() {
     const query = searchQuery.toLowerCase();
     return (
       log.action.toLowerCase().includes(query) ||
-      log.actor_email?.toLowerCase().includes(query) ||
+      log.actor_name?.toLowerCase().includes(query) ||
       log.report_id?.toLowerCase().includes(query) ||
       log.old_value?.toLowerCase().includes(query) ||
       log.new_value?.toLowerCase().includes(query)
@@ -331,7 +331,7 @@ export default function ActivityLogsPage() {
                       <div>
                         <h3 className="font-semibold text-gray-900">{formatAction(log.action)}</h3>
                         <p className="text-sm text-gray-500">
-                          by <span className="font-medium text-gray-700">{log.actor_email || 'System'}</span>
+                          by <span className="font-medium text-gray-700">{log.actor_name || 'System'}</span>
                         </p>
                       </div>
                       <span className="text-xs text-gray-400 whitespace-nowrap">

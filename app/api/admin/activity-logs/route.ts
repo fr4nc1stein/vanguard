@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCfEnv } from '@/lib/db';
 import { requireRole } from '@/lib/auth';
+import { clerkClient } from '@clerk/nextjs/server';
+import { getDisplayName } from '@/lib/redact';
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,9 +70,30 @@ export async function GET(request: NextRequest) {
       LIMIT ? OFFSET ?
     `;
     const result = await d1.prepare(dataQuery).bind(...params, limit, offset).all();
+    const logs = result.results || [];
+
+    // Enrich logs with actor names from Clerk
+    const enrichedLogs = await Promise.all(
+      logs.map(async (log: any) => {
+        let actorName = 'System';
+        if (log.actor_id && log.actor_id.startsWith('user_')) {
+          try {
+            const client = await clerkClient();
+            const actor = await client.users.getUser(log.actor_id);
+            actorName = getDisplayName(actor);
+          } catch (err) {
+            console.warn('[GET /api/admin/activity-logs] Failed to fetch actor name:', err);
+          }
+        }
+        return {
+          ...log,
+          actor_name: actorName,
+        };
+      })
+    );
 
     return NextResponse.json({
-      logs: result.results || [],
+      logs: enrichedLogs,
       pagination: {
         page,
         limit,

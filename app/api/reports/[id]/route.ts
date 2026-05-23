@@ -48,8 +48,13 @@ export async function GET(
     // Resolve PoC file keys (stored as JSON array, no R2 URLs)
     const pocKeys: string[] = JSON.parse(report.pocFiles || '[]');
 
-    // Get audit logs for staff
-    const auditLogs = isStaff ? await getAuditLog(db, report.id) : [];
+    // Get audit logs
+    const allAuditLogs = await getAuditLog(db, report.id);
+    
+    // Filter internal logs for non-staff users
+    const auditLogs = isStaff 
+      ? allAuditLogs 
+      : allAuditLogs.filter(log => log.isInternal === 0);
 
     // Fetch reporter name from Clerk if staff
     let reporterName = report.handle || 'Anonymous';
@@ -63,23 +68,23 @@ export async function GET(
       }
     }
 
-    // Enrich audit logs with user names
+    // Enrich audit logs with user names from Clerk
     const enrichedAuditLogs = await Promise.all(
       auditLogs.map(async (log) => {
-        let actorName = log.actorEmail || log.actorId || 'System';
+        let actorName = 'System';
         if (log.actorId && log.actorId.startsWith('user_')) {
           try {
             const client = await clerkClient();
             const actor = await client.users.getUser(log.actorId);
             actorName = getDisplayName(actor);
           } catch (err) {
-            // Fallback to email or ID if Clerk fetch fails
+            // Fallback to System if Clerk fetch fails
+            console.warn('[GET /api/reports/[id]] Failed to fetch actor name:', err);
           }
         }
         return {
           id:         log.id,
           action:     log.action,
-          actor_id:   log.actorId,
           actor_name: actorName,
           old_value:  log.oldValue,
           new_value:  log.newValue,

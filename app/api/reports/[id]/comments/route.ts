@@ -12,6 +12,7 @@ import { getDisplayName } from '@/lib/redact';
 
 const CreateCommentSchema = z.object({
   message: z.string().min(1).max(5000),
+  isInternal: z.boolean().optional(),
 });
 
 export async function GET(
@@ -43,7 +44,7 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch comments
+    // Fetch comments - filter internal comments for non-staff users
     const allComments = await db
       .select()
       .from(comments)
@@ -51,7 +52,12 @@ export async function GET(
       .orderBy(comments.createdAt)
       .all();
 
-    return NextResponse.json({ comments: allComments });
+    // Filter out internal comments if user is not staff
+    const visibleComments = isStaff 
+      ? allComments 
+      : allComments.filter(c => c.isInternal === 0);
+
+    return NextResponse.json({ comments: visibleComments });
   } catch (err) {
     console.error('[GET /api/reports/[id]/comments]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -107,6 +113,9 @@ export async function POST(
     const now = Date.now();
     const commentId = crypto.randomUUID();
 
+    // Only staff can create internal comments
+    const isInternal = data.isInternal && isStaff ? 1 : 0;
+
     // Insert comment (name will be fetched from Clerk dynamically)
     await db.insert(comments).values({
       id: commentId,
@@ -114,6 +123,7 @@ export async function POST(
       authorId: userId,
       authorRole: role,
       message: data.message,
+      isInternal,
       createdAt: now,
     });
 
