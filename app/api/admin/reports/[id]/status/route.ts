@@ -25,7 +25,7 @@ const ALLOWED_TRANSITIONS: Record<ReportStatus, ReportStatus[]> = {
   triaged:       ['accepted', 'rejected', 'informational', 'duplicate'],
   accepted:      ['fixed', 'rejected'],
   rejected:      ['accepted', 'triaged'],
-  fixed:         [],
+  fixed:         ['accepted'], // Allow reverting to accepted if fix doesn't work
   informational: ['triaged', 'new'], // Allow reopening informational reports
   duplicate:     ['triaged', 'new'], // Allow reopening duplicates
 };

@@ -72,7 +72,7 @@ const NEXT_STATUSES: Record<string, string[]> = {
   triaged:       ["accepted", "rejected", "informational"],
   accepted:      ["fixed", "rejected"],
   rejected:      ["accepted", "triaged"],
-  fixed:         [],
+  fixed:         ["accepted"], // Allow reverting to accepted if fix doesn't work
   informational: ["triaged", "new"], // Allow reopening informational reports
 };
 
