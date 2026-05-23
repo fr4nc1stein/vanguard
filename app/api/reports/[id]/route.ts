@@ -105,9 +105,9 @@ export async function GET(
       // Fetch triager name from Clerk instead of showing email
       try {
         const client = await clerkClient();
-        const triager = await client.users.getUser({ emailAddress: [report.assignedTo] });
-        if (triager.data && triager.data.length > 0) {
-          assignedTo = getDisplayName(triager.data[0]);
+        const users = await client.users.getUserList({ emailAddress: [report.assignedTo] });
+        if (users.data && users.data.length > 0) {
+          assignedTo = getDisplayName(users.data[0]);
         } else {
           assignedTo = report.assignedTo; // Fallback to email if not found
         }
