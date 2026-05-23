@@ -167,10 +167,24 @@ export default function AdminReportDetail() {
         if (!r.ok) throw new Error(await r.text());
         return r.json();
       })
-      .then((data) => {
-        setReport(data.data ?? data);
-        setTriageSeverity(data.data?.severity ?? data.severity ?? "");
-        setTriageAssignTo(data.data?.assigned_to ?? data.assigned_to ?? "");
+      .then(async (data) => {
+        const reportData = data.data ?? data;
+        setReport(reportData);
+        setTriageSeverity(reportData.severity ?? "");
+        setTriageAssignTo(reportData.assigned_to ?? "");
+        
+        // Fetch assigned triager name if assigned_to exists
+        if (reportData.assigned_to) {
+          try {
+            const userRes = await fetch(`/api/admin/users/${reportData.assigned_to}`);
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              setAssignedToName(userData.name);
+            }
+          } catch (err) {
+            console.warn('Failed to fetch triager name:', err);
+          }
+        }
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
