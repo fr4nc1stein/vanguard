@@ -339,11 +339,6 @@ export default function AdminReportDetail() {
       const data = await res.json();
       setToast({ message: data.message || 'Report assigned to you', type: 'success' });
       
-      // Store user email in localStorage for "My Reports" filter
-      if (data.assignedTo) {
-        localStorage.setItem('userEmail', data.assignedTo);
-      }
-      
       // Refresh report data
       setTimeout(() => window.location.reload(), 1000);
     } catch (e: unknown) {

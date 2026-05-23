@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getDb, getCfEnv } from '@/lib/db';
 import { reports } from '@/lib/db/schema';
-import { requireRole, getSessionEmail } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 import { TriageUpdateSchema } from '@/lib/validation';
 import { logAudit } from '@/lib/audit';
 import { awardPoints } from '@/lib/services/hall-of-fame';
@@ -71,8 +71,7 @@ export async function PATCH(
     }
 
     const now = Date.now();
-    const actorEmail = await getSessionEmail();
-    const clientIp   = request.headers.get('cf-connecting-ip') ?? undefined;
+    const clientIp = request.headers.get('cf-connecting-ip') ?? undefined;
 
     // Build update set
     const updateSet: Partial<typeof reports.$inferInsert> = {
@@ -90,7 +89,6 @@ export async function PATCH(
         db,
         reportId:   report.id,
         actorId:    userId,
-        actorEmail,
         action:     'status_changed',
         oldValue:   currentStatus,
         newValue:   newStatus,
@@ -104,7 +102,6 @@ export async function PATCH(
         db,
         reportId:   report.id,
         actorId:    userId,
-        actorEmail,
         action:     'severity_changed',
         oldValue:   report.severity,
         newValue:   update.severity,
@@ -118,7 +115,6 @@ export async function PATCH(
         db,
         reportId:   report.id,
         actorId:    userId,
-        actorEmail,
         action:     'assigned',
         newValue:   update.assignedTo,
         ipAddress:  clientIp,

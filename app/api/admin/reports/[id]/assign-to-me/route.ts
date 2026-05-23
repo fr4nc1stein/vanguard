@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getDb, getCfEnv } from '@/lib/db';
 import { reports } from '@/lib/db/schema';
-import { requireRole, getSessionEmail } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
 
 export async function PATCH(
@@ -21,12 +21,6 @@ export async function PATCH(
     const { DB } = getCfEnv();
     const db = getDb(DB);
 
-    // Get current user's email
-    const actorEmail = await getSessionEmail();
-    if (!actorEmail) {
-      return NextResponse.json({ error: 'User email not found' }, { status: 400 });
-    }
-
     // Fetch the report
     const [report] = await db.select().from(reports).where(eq(reports.id, id)).limit(1);
     if (!report) {
@@ -36,11 +30,11 @@ export async function PATCH(
     // Check if already assigned to someone else
     const wasAssigned = report.assignedTo;
 
-    // Update assignment
+    // Update assignment - use Clerk user ID instead of email
     const now = Date.now();
     await db.update(reports)
       .set({
-        assignedTo: actorEmail,
+        assignedTo: userId, // Store Clerk user ID
         updatedAt: now,
       })
       .where(eq(reports.id, id));
@@ -54,18 +48,17 @@ export async function PATCH(
       db,
       reportId: report.id,
       actorId: userId,
-      actorEmail,
       action: 'assigned',
       oldValue: wasAssigned || undefined,
-      newValue: actorEmail,
+      newValue: userId, // Log user ID instead of email
       ipAddress: clientIp,
     });
 
     return NextResponse.json({
       success: true,
-      assignedTo: actorEmail,
+      assignedTo: userId,
       message: wasAssigned 
-        ? `Report reassigned from ${wasAssigned} to you`
+        ? 'Report reassigned to you'
         : 'Report assigned to you',
     });
   } catch (err) {

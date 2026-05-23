@@ -102,18 +102,14 @@ export async function GET(
     // Researchers should not know who is triaging their report
     let assignedTo: string | null = null;
     if (isStaff && report.assignedTo) {
-      // Fetch triager name from Clerk instead of showing email
+      // Fetch triager name from Clerk using user ID
       try {
         const client = await clerkClient();
-        const users = await client.users.getUserList({ emailAddress: [report.assignedTo] });
-        if (users.data && users.data.length > 0) {
-          assignedTo = getDisplayName(users.data[0]);
-        } else {
-          assignedTo = report.assignedTo; // Fallback to email if not found
-        }
+        const triager = await client.users.getUser(report.assignedTo);
+        assignedTo = getDisplayName(triager);
       } catch (err) {
         console.warn('[GET /api/reports/[id]] Failed to fetch triager name:', err);
-        assignedTo = report.assignedTo; // Fallback to email on error
+        assignedTo = 'Unknown'; // Fallback if user not found
       }
     }
 
