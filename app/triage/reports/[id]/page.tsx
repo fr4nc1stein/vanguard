@@ -124,6 +124,7 @@ export default function AdminReportDetail() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [triagers, setTriagers] = useState<Array<{ email: string; name: string }>>([]);
+  const [assignedToName, setAssignedToName] = useState<string | null>(null);
 
   useEffect(() => {
     if (toast) {
@@ -818,7 +819,7 @@ export default function AdminReportDetail() {
               <div className="space-y-2 text-gray-600">
                 <div className="flex justify-between">
                   <span>Assigned to</span>
-                  <span className="font-medium text-gray-900">{report.assigned_to ?? "—"}</span>
+                  <span className="font-medium text-gray-900">{assignedToName ?? report.assigned_to ?? "—"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Submitted</span>
