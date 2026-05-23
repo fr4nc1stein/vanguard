@@ -101,7 +101,7 @@ export default function UnifiedTimeline({ entries, isStaff = false }: UnifiedTim
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{entry.message}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-wrap-anywhere">{entry.message}</p>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                   <span>💬 Comment</span>
                   <span>·</span>
@@ -124,15 +124,15 @@ export default function UnifiedTimeline({ entries, isStaff = false }: UnifiedTim
 
                 {/* before → after value */}
                 {(entry.oldValue || entry.newValue) && (
-                  <div className="flex items-center gap-2 mt-1.5 text-xs">
+                  <div className="flex items-center gap-2 mt-1.5 text-xs flex-wrap">
                     {entry.oldValue && (
-                      <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded font-mono">{entry.oldValue}</span>
+                      <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded font-mono break-words">{entry.oldValue}</span>
                     )}
                     {entry.oldValue && entry.newValue && (
                       <span className="text-gray-400">→</span>
                     )}
                     {entry.newValue && (
-                      <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded font-mono">{entry.newValue}</span>
+                      <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded font-mono break-words">{entry.newValue}</span>
                     )}
                   </div>
                 )}
