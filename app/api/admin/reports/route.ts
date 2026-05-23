@@ -7,6 +7,8 @@ import { getDb, getCfEnv } from '@/lib/db';
 import { reports } from '@/lib/db/schema';
 import { requireRole } from '@/lib/auth';
 import { PaginationSchema } from '@/lib/validation';
+import { clerkClient } from '@clerk/nextjs/server';
+import { getDisplayName } from '@/lib/redact';
 
 export async function GET(request: NextRequest) {
   try {
@@ -71,8 +73,28 @@ export async function GET(request: NextRequest) {
 
     const total = countRow?.count ?? 0;
 
+    // Enrich reports with triager names from Clerk
+    const enrichedReports = await Promise.all(
+      rows.map(async (report) => {
+        let assignedToName = report.assignedTo;
+        if (report.assignedTo && report.assignedTo.startsWith('user_')) {
+          try {
+            const client = await clerkClient();
+            const triager = await client.users.getUser(report.assignedTo);
+            assignedToName = getDisplayName(triager);
+          } catch (err) {
+            console.warn('[GET /api/admin/reports] Failed to fetch triager name:', err);
+          }
+        }
+        return {
+          ...report,
+          assignedTo: assignedToName,
+        };
+      })
+    );
+
     return NextResponse.json({
-      reports: rows,
+      reports: enrichedReports,
       pagination: { page, per_page, total, pages: Math.ceil(total / per_page) },
     });
   } catch (err) {
