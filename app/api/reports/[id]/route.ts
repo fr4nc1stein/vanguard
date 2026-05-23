@@ -83,15 +83,29 @@ export async function GET(
           }
         }
         
-        // Convert user IDs to names in new_value for assignment logs
+        // Convert user IDs to names in new_value and old_value for assignment logs
         let newValue = log.newValue;
-        if (log.action === 'assigned' && newValue && newValue.startsWith('user_')) {
-          try {
-            const client = await clerkClient();
-            const assignee = await client.users.getUser(newValue);
-            newValue = getDisplayName(assignee);
-          } catch (err) {
-            console.warn('[GET /api/reports/[id]] Failed to fetch assignee name:', err);
+        let oldValue = log.oldValue;
+        
+        if (log.action === 'assigned') {
+          if (newValue && newValue.startsWith('user_')) {
+            try {
+              const client = await clerkClient();
+              const assignee = await client.users.getUser(newValue);
+              newValue = getDisplayName(assignee);
+            } catch (err) {
+              console.warn('[GET /api/reports/[id]] Failed to fetch new assignee name:', err);
+            }
+          }
+          
+          if (oldValue && oldValue.startsWith('user_')) {
+            try {
+              const client = await clerkClient();
+              const assignee = await client.users.getUser(oldValue);
+              oldValue = getDisplayName(assignee);
+            } catch (err) {
+              console.warn('[GET /api/reports/[id]] Failed to fetch old assignee name:', err);
+            }
           }
         }
         
@@ -99,7 +113,7 @@ export async function GET(
           id:         log.id,
           action:     log.action,
           actor_name: actorName,
-          old_value:  log.oldValue,
+          old_value:  oldValue,
           new_value:  newValue,
           timestamp:  new Date(log.timestamp).toISOString(),
         };
