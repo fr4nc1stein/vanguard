@@ -175,6 +175,40 @@ const rows = await db.select().from(reports).where(eq(reports.status, 'new')).al
 
 ---
 
+## Database Migration Rules
+
+### Email to User ID Conversions
+**Create SQL migration files for email-to-user-ID conversions, but DO NOT commit them to git.**
+
+**Process:**
+1. Create `.sql` file in `migrations/` directory (e.g., `0012_update_email_to_userid.sql`)
+2. Include Clerk user ID lookup and UPDATE statements
+3. Execute manually via `wrangler d1 execute --remote --file=migrations/XXXX.sql`
+4. **DO NOT** `git add` or commit the migration file
+5. Document the conversion in commit messages only
+
+**Rationale:**
+- Migration files are useful for executing the conversion
+- But they shouldn't be in version control because:
+  - They're one-time operations, not repeatable schema changes
+  - They contain user-specific data (emails, user IDs)
+  - They require external API calls (Clerk) which cannot be in pure SQL
+- Keep them local for manual execution, then discard
+
+**Example:**
+```sql
+-- migrations/0012_update_user_email.sql (DO NOT COMMIT)
+-- User: John Doe
+-- Email: john@example.com
+-- Clerk ID: user_ABC123
+
+UPDATE audit_logs 
+SET new_value = 'user_ABC123'
+WHERE action = 'assigned' AND new_value = 'john@example.com';
+```
+
+---
+
 ## Authentication Flow
 
 ### Sign-in/Sign-up Redirect Chain
