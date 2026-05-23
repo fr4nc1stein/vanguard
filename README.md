@@ -3,7 +3,7 @@
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
 **Live:** https://vanguard.laet4x.com  
-**Version:** v1.0.4-alpha  
+**Version:** v1.0.5-hotfix  
 **Status:** 🧪 Public Alpha - Open for Testing
 
 ---
@@ -99,15 +99,20 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **CSV Export** — Export analytics data for compliance
 - ✅ **Date Range Selector** — 7, 30, 90, or 365 days
 
-### 📋 Activity Logs (v0.6.0-dev)
+### 📋 Activity Logs & Communication (v1.0.5-hotfix)
 - ✅ **Centralized Activity Viewer** (`/admin/activity-logs`) — All platform activities in one place
 - ✅ **Advanced Filtering** — Filter by action type, date range, actor, report ID
 - ✅ **Timeline View** — Color-coded actions with icons (7 action types)
 - ✅ **Search Functionality** — Real-time search across all log fields
 - ✅ **Pagination** — 50 logs per page with navigation
 - ✅ **CSV Export** — Export filtered logs for compliance and auditing
-- ✅ **Actor Display** — Shows email addresses instead of Clerk IDs
+- ✅ **Actor Display** — Shows user names instead of emails or Clerk IDs
 - ✅ **Report Links** — Direct links to triage page from log entries
+- ✅ **Unified Timeline** — Merged comments and activity logs chronologically
+- ✅ **Internal Comments** — Staff-only private notes on reports
+- ✅ **Toggle Visibility** — Change comments/logs between internal and public
+- ✅ **Text Wrapping** — Long content wraps properly in timeline
+- ✅ **Email Privacy** — Zero email exposure across entire system
 
 ### 🔍 Modern Table Features (v0.4.0-dev)
 All data tables include:
@@ -132,10 +137,13 @@ All data tables include:
 
 ### 💬 Communication Features
 - ✅ **Comments System** — Researchers and staff can communicate
+- ✅ **Internal Comments** — Staff-only private notes (🔒 icon)
 - ✅ **Role Badges** — Visual indicators for USER/TRIAGER/ADMIN
 - ✅ **Timestamps** — All comments timestamped
 - ✅ **Markdown Support** — Rich text formatting in report descriptions
-- ✅ **Activity Timeline** — Complete history of report changes
+- ✅ **Unified Timeline** — Comments and audit logs merged chronologically
+- ✅ **Toggle Visibility** — Staff can change internal/public status
+- ✅ **Response Templates** — Quick responses for common scenarios
 
 ### 🎨 UI/UX Enhancements
 - ✅ **Toast Notifications** — Success/error feedback
@@ -258,7 +266,7 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 - [ ] Slack/Discord notifications
 
 **Enhanced Collaboration**
-- [ ] Internal notes on reports (staff-only)
+- [x] Internal notes on reports (staff-only)
 - [ ] @mentions in comments
 - [ ] Report assignment notifications
 - [ ] Team activity feed

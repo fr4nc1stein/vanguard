@@ -4,6 +4,56 @@ All notable changes to the Vanguard VDP platform.
 
 > **Versioning Strategy:** This project uses semantic versioning with `0.x.y` for development releases and `1.x.y` for production releases. Version `1.0.0` will mark the first production-ready release.
 
+## [v1.0.5-hotfix] - 2026-05-22
+
+### 🔐 Email Privacy & User Display (Critical Hotfix)
+- **Fixed email exposure** in activity logs and audit logs
+- **Converted all user references** to display names via Clerk API
+- **Cleaned historical email data** from database (migration 0011)
+- **Display triager names** instead of user IDs in all locations
+- Removed `actor_email` from audit log API responses
+- Added name fetching from Clerk in all relevant endpoints
+
+### 📊 Activity Logs & Communication Improvements
+- **Unified Timeline** - Merged comments and activity logs chronologically
+- **Internal Comments** - Staff can add private notes (🔒 icon)
+- **Toggle Visibility** - Change comments/logs between internal and public
+- **Text Wrapping** - Long content wraps properly in timeline cards
+- **Response Templates** - Quick responses for common scenarios
+- Optimistic UI updates with toast notifications
+
+### 🗄️ Database Migrations
+- **Migration 0009:** Added `is_internal` flags to `comments` and `audit_logs` tables
+- **Migration 0010:** Converted `assigned_to` from emails to Clerk user IDs (3 reports migrated)
+- **Migration 0011:** Cleaned all emails from `audit_logs` table (20 rows updated)
+
+### 🚀 API Enhancements
+- `/api/admin/users/[id]` - Fetch user names by Clerk ID
+- `/api/reports/[id]/comments/[commentId]/toggle-internal` - Toggle comment visibility
+- `/api/reports/[id]/audit-logs/[logId]/toggle-internal` - Toggle audit log visibility
+- `/api/admin/reports` - Enriched with triager names from Clerk
+- `/api/reports/[id]` - Enriched audit logs with assignee names
+
+### 🔄 Status Management
+- Allow reverting **fixed → accepted** status
+- Useful when fixes don't work or need rework
+- Maintains audit trail of all status changes
+
+### 🎯 Impact
+- ✅ Zero email exposure across entire system
+- ✅ Better privacy and security for all users
+- ✅ Improved staff workflow with toggle functionality
+- ✅ Clean, professional UI with proper name display
+- ✅ Complete audit trail with internal/public separation
+
+### 📦 Deployment
+- **Tag:** v1.0.5-hotfix
+- **Commit:** bcbc08a
+- **Version ID:** 2ccfab92-41f2-4f28-8fd9-7c08e8198d39
+- **Live:** https://vanguard.laet4x.com
+
+---
+
 ## [0.6.0-dev] - 2026-05-18
 
 ### 📋 Activity Logs Feature (Major Feature)
