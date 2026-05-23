@@ -82,12 +82,25 @@ export async function GET(
             console.warn('[GET /api/reports/[id]] Failed to fetch actor name:', err);
           }
         }
+        
+        // Convert user IDs to names in new_value for assignment logs
+        let newValue = log.newValue;
+        if (log.action === 'assigned' && newValue && newValue.startsWith('user_')) {
+          try {
+            const client = await clerkClient();
+            const assignee = await client.users.getUser(newValue);
+            newValue = getDisplayName(assignee);
+          } catch (err) {
+            console.warn('[GET /api/reports/[id]] Failed to fetch assignee name:', err);
+          }
+        }
+        
         return {
           id:         log.id,
           action:     log.action,
           actor_name: actorName,
           old_value:  log.oldValue,
-          new_value:  log.newValue,
+          new_value:  newValue,
           timestamp:  new Date(log.timestamp).toISOString(),
         };
       })
