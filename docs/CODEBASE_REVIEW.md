@@ -92,7 +92,7 @@ Vanguard VDP is a fully functional, production-ready vulnerability disclosure sy
 
 **`reports` table:**
 - Encrypted fields: `email_encrypted`, `body_encrypted` (with corresponding IVs)
-- Reference ID: `ref_id` (BGP-YYYY-XXXX format)
+- Reference ID: `ref_id` (VVDP-[S]-YYYY-XXXXXXXX format)
 - Status tracking: new → triaged → accepted/rejected → fixed
 - Clerk integration: `clerk_user_id` for submitter tracking
 - Privacy: `ip_hash` (SHA-256)
@@ -122,8 +122,9 @@ Vanguard VDP is a fully functional, production-ready vulnerability disclosure sy
 **Protected Pages (Auth Required):**
 - `/dashboard` - User's own report submissions
 - `/submit` - Vulnerability report form
-- `/admin` - Admin triage dashboard (TRIAGER/ADMIN only)
-- `/admin/reports/[id]` - Report detail and triage actions
+- `/triage` - Triage dashboard (TRIAGER/ADMIN only)
+- `/triage/reports/[id]` - Report detail and triage actions
+- `/admin` - Admin console (ADMIN only)
 
 ### Components
 
@@ -168,7 +169,7 @@ Vanguard VDP is a fully functional, production-ready vulnerability disclosure sy
 - Encryption: Email and body encrypted before storage
 - Audit: Logs submission with IP hash
 - Notification: Optional Discord webhook
-- Response: `{ success: true, referenceId: "BGP-2026-1234" }`
+- Response: `{ success: true, referenceId: "VVDP-H-2026-7D4E2C10" }`
 
 **`GET /api/reports`** - List own reports
 - Auth: Required (Clerk session)
@@ -197,10 +198,9 @@ Vanguard VDP is a fully functional, production-ready vulnerability disclosure sy
 - Decrypts sensitive fields for admin view
 - Returns: Full report with audit log
 
-### Edge Runtime
-- **All API routes** use `export const runtime = 'edge'`
-- Required for Cloudflare Workers deployment
-- Ensures compatibility with D1 bindings
+### Runtime
+- Do not set `export const runtime = 'edge'` in app files.
+- The OpenNext Cloudflare wrapper owns runtime selection and D1 binding access.
 
 ---
 
@@ -260,7 +260,7 @@ npm run deploy  # Build + deploy to Cloudflare Pages
    - Separation of concerns (lib/ for business logic)
    - Reusable components
    - Consistent API response format
-   - Edge runtime optimization
+   - OpenNext Cloudflare runtime compatibility
 
 4. **User Experience**
    - Responsive design
@@ -279,8 +279,6 @@ npm run deploy  # Build + deploy to Cloudflare Pages
 
 **API Route Pattern:**
 ```typescript
-export const runtime = 'edge'
-
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -362,13 +360,12 @@ All previously identified issues have been resolved:
 - ✅ Clerk authentication working correctly
 - ✅ Redirects configured properly
 - ✅ All routes protected appropriately
-- ✅ Edge runtime on all API routes
+- ✅ OpenNext Cloudflare runtime configured centrally
 - ✅ Encryption and decryption operational
 
 ### Minor Cleanup Opportunities
 
-1. **Legacy Route:** `app/api/submit-report/route.ts` - Can be deleted (unused)
-2. **Middleware Deprecation:** Next.js 16 deprecates `middleware.ts` but Clerk doesn't support `proxy.ts` yet - leave as-is
+1. **Middleware Deprecation:** Next.js 16 deprecates `middleware.ts` but Clerk doesn't support `proxy.ts` yet - leave as-is
 
 ---
 
@@ -409,7 +406,7 @@ All previously identified issues have been resolved:
 ### For Developers
 
 1. **Always use `npm run dev:cf`** when working with D1 database
-2. **Never skip `export const runtime = 'edge'`** on API routes
+2. **Do not set `export const runtime = 'edge'`** in app files; OpenNext handles runtime configuration
 3. **Mirror Zod schemas** between client and server validation
 4. **Test authentication flow** after any Clerk configuration changes
 5. **Review audit logs** regularly for security monitoring

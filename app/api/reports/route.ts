@@ -1,7 +1,7 @@
 /**
  * POST /api/reports — Submit a new vulnerability report
  *
- * - No authentication required (public submission)
+ * - Requires a Clerk session
  * - Validates input with Zod
  * - Encrypts sensitive fields (email, body) with AES-GCM-256
  * - Stores in Cloudflare D1
@@ -10,9 +10,9 @@
  * - Optionally notifies via Discord webhook
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getDb, getCfEnv } from '@/lib/db';
-import { reports } from '@/lib/db/schema';
+import { reports, scopes } from '@/lib/db/schema';
 import { encryptText, hashValue } from '@/lib/crypto';
 import { ReportSubmitSchema } from '@/lib/validation';
 import { logAudit } from '@/lib/audit';
@@ -66,6 +66,19 @@ export async function POST(request: NextRequest) {
 
     // ── Get D1 binding ───────────────────────────────────────────────────────
     const db = getDb(getCfEnv().DB);
+
+    // ── Validate target against active scope records ─────────────────────────
+    const activeScope = await db
+      .select({ id: scopes.id })
+      .from(scopes)
+      .where(and(eq(scopes.domain, data.target), eq(scopes.status, 'active')))
+      .get();
+    if (!activeScope) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: { target: ['Target is not an active in-scope asset'] } },
+        { status: 422 },
+      );
+    }
 
     // ── Ensure unique refId ──────────────────────────────────────────────────
     let refId = generateRefId(data.severity);
@@ -174,7 +187,7 @@ export async function POST(request: NextRequest) {
 }
 
 // ── GET /api/reports — list own reports (auth required) ──────────────────────
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

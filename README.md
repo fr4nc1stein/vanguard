@@ -209,21 +209,28 @@ app/
 ├── submit/page.tsx                   # Submit form (auth required)
 ├── dashboard/page.tsx                # Researcher's own submissions
 ├── hall-of-fame/page.tsx             # Public Hall of Fame
-├── admin/page.tsx                    # Admin triage panel (ADMIN/TRIAGER only)
-├── admin/reports/[id]/page.tsx       # Report detail + triage actions
+├── triage/page.tsx                   # Triage queue (TRIAGER/ADMIN only)
+├── triage/reports/[id]/page.tsx      # Report detail + triage actions
+├── admin/page.tsx                    # Admin console (ADMIN only)
 ├── sign-in/ & sign-up/               # Clerk auth pages
 └── api/                              # API routes (no edge runtime flag needed)
 lib/
 ├── db/                               # getDb(), getCfEnv(), Drizzle schema
 ├── crypto.ts                         # AES-GCM-256 encrypt/decrypt
-├── validation.ts                     # Zod schemas + VALID_TARGETS
+├── validation.ts                     # Zod schemas + bootstrap scope targets
 ├── auth.ts                           # requireRole(), getSessionRole()
 └── audit.ts                          # logAudit()
 docs/
 ├── DEPLOYMENT_GUIDE.md               # Deployment + infrastructure config
+├── MIGRATION_ORDER.md                # D1 migration apply order
 ├── ROLE_SETUP_INSTRUCTIONS.md        # Clerk role assignment
 ├── blueprint.md                      # Architecture reference
 └── agent.md                          # Developer persona + lessons learned
+migrations/
+├── 0001_schema.sql                   # Base D1 schema: reports + audit_logs
+├── 003_create_scopes_table.sql       # Dynamic scope targets
+├── 004_create_comments_table.sql     # Researcher/staff comments
+└── 0005+                             # Hall of Fame, templates, privacy, flags
 ```
 
 ## Roles
@@ -231,21 +238,17 @@ docs/
 | Role | How to assign | Access |
 |---|---|---|
 | _(none)_ | Default for new users | Dashboard + submit only |
-| `TRIAGER` | Set in Clerk publicMetadata | Admin panel — view & triage |
+| `TRIAGER` | Set in Clerk publicMetadata | Triage panel — view & triage |
 | `ADMIN` | Set in Clerk publicMetadata | Full admin access |
 
 See [docs/ROLE_SETUP_INSTRUCTIONS.md](docs/ROLE_SETUP_INSTRUCTIONS.md) for step-by-step instructions.
-migrations/
-└── 0001_schema.sql                   # D1: reports + audit_logs tables
-```
 
 ## Pending Cleanup
 
 ```bash
-# Remove unused AWS SDK (R2 was removed — these packages are dead weight)
+# Remove unused AWS SDK if these packages are present (R2 was removed)
 npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-deps
 
-# Also safe to delete: lib/r2.ts, app/api/submit-report/route.ts
 # Also safe to remove: [[r2_buckets]] block in wrangler.toml
 ```
 

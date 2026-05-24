@@ -99,7 +99,7 @@ function generateRefId(severity: string): string {
 Regex for validating reference IDs:
 
 ```regex
-^VVDP-[CHML I]-\d{4}-[A-F0-9]{8}$
+^VVDP-[CHMLI]-\d{4}-[A-F0-9]{8}$
 ```
 
 JavaScript validation:

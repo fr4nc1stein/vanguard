@@ -511,15 +511,7 @@ Show toast: "Marked as duplicate of REF-XXX"
 **Affected Files:**
 - `/app/api/admin/scopes/[id]/route.ts`
 
-**Fix Applied:**
-```typescript
-// Before:
-export const runtime = 'edge';
-
-// After (commented out):
-// Removed edge runtime to use Node.js runtime for better Clerk API compatibility
-// export const runtime = 'edge';
-```
+**Fix Applied:** Removed explicit runtime exports from app files. The OpenNext Cloudflare wrapper handles runtime selection.
 
 **Recommendation:** Avoid using `edge` runtime for endpoints that:
 - Make Clerk API calls

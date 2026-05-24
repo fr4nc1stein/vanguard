@@ -9,9 +9,6 @@ import { requireRole } from '@/lib/auth';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 
-// Removed edge runtime to use Node.js runtime for better Clerk API compatibility
-// export const runtime = 'edge';
-
 // PATCH - Update scope
 const UpdateScopeSchema = z.object({
   domain: z.string().min(1).max(200).optional(),
@@ -59,7 +56,7 @@ export async function PATCH(
     console.log('[PATCH /api/admin/scopes/[id]] Existing scope:', JSON.stringify(existing));
 
     // Build update object with proper field mapping
-    const updateData: any = {
+    const updateData: Partial<typeof scopes.$inferInsert> = {
       updatedAt: Date.now(),
     };
     

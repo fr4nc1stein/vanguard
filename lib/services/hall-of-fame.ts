@@ -12,7 +12,7 @@ import {
   hacktivity,
   auditLogs 
 } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -54,6 +54,7 @@ export function redactReportTitle(title: string): string {
 
   // Remove API keys/tokens (common patterns)
   redacted = redacted.replace(/\b(sk_live_|pk_live_|api_key_|token_)[a-zA-Z0-9_-]+/gi, '[API_KEY]');
+  redacted = redacted.replace(/\b[A-Z0-9_]*KEY_[A-Za-z0-9_-]{3,}\b/g, '[API_KEY]');
   redacted = redacted.replace(/\b[a-f0-9]{32,}\b/gi, '[TOKEN]');
 
   // Remove full URLs (keep domain only)

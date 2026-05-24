@@ -14,6 +14,7 @@ import {
   SEVERITIES,
   VALID_STATUSES,
   TEMPLATE_CATEGORIES,
+  BOOTSTRAP_SCOPE_TARGETS,
   VALID_TARGETS,
   VULN_TYPES,
 } from '@/lib/validation';
@@ -54,8 +55,14 @@ describe('Validation Module', () => {
       });
     });
 
-    describe('VALID_TARGETS', () => {
-      it('should have expected target domains', () => {
+    describe('BOOTSTRAP_SCOPE_TARGETS', () => {
+      it('should have expected seed target domains', () => {
+        expect(BOOTSTRAP_SCOPE_TARGETS).toContain('vanguard.laet4x.com');
+        expect(BOOTSTRAP_SCOPE_TARGETS).toContain('laet4x.com');
+      });
+
+      it('should keep VALID_TARGETS as the deprecated bootstrap alias', () => {
+        expect(VALID_TARGETS).toBe(BOOTSTRAP_SCOPE_TARGETS);
         expect(VALID_TARGETS).toContain('vanguard.laet4x.com');
         expect(VALID_TARGETS).toContain('laet4x.com');
       });
