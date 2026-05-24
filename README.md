@@ -254,39 +254,64 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 
 ## 🚀 Roadmap
 
-### Planned Features
+### Current Feature Status
+
+**Completed Admin Modules**
+- [x] User Management (`/admin/users`) — Clerk user listing, search, sort, pagination, role updates
+- [x] Scope Management (`/admin/scope`) — Database-backed target CRUD and dynamic submit form targets
+- [x] Analytics Dashboard (`/admin/analytics`) — Metrics, distributions, trends, top reporters/targets, CSV export
+- [x] Activity Logs (`/admin/activity-logs`) — Filtering, search, pagination, and CSV export
+- [x] Hall of Fame Management (`/admin/hall-of-fame`) — Leaderboard, points config, visibility controls
+- [x] Response Templates (`/admin/templates`) — Triage response templates with variables and preview
 
 **Advanced Reporting & Analytics**
-- [ ] Export filtered/sorted table data to CSV
-- [ ] Custom date range analytics
-- [ ] Report templates
+- [x] Analytics CSV export
+- [x] Activity log CSV export
+- [ ] Export filtered/sorted data from every table
+- [ ] Custom calendar date range analytics
 - [ ] Automated weekly/monthly reports
+- [ ] Scheduled compliance report generation
 
 **Notification System**
+- [x] New report Discord webhook via `DISCORD_WEBHOOK_URL`
 - [ ] Email notifications for report status changes
 - [ ] In-app notification center
-- [ ] Webhook integrations for external tools
-- [ ] Slack/Discord notifications
+- [ ] Configurable webhook integrations for external tools
+- [ ] Slack/Discord notification management UI
+- [ ] Report assignment notifications
 
 **Enhanced Collaboration**
+- [x] Researcher/staff comments
 - [x] Internal notes on reports (staff-only)
+- [x] Unified comments and audit-log timeline
+- [x] Response templates for common triage replies
 - [ ] @mentions in comments
-- [ ] Report assignment notifications
 - [ ] Team activity feed
 
 **Security & Compliance**
-- [ ] Two-factor authentication
-- [x] Audit log export (CSV export in Activity Logs)
-- [ ] GDPR compliance tools
-- [ ] Data retention policies
+- [x] Audit log export
+- [x] User data deletion guide and cleanup scripts
+- [x] Email privacy cleanup from activity/audit displays
+- [ ] Two-factor authentication policy/configuration
+- [ ] Admin-managed data retention policies
+- [ ] Automated backup and disaster recovery workflow
+- [ ] Monitoring and alerting setup
 
 **Researcher Experience**
+- [x] Authenticated submission flow
+- [x] Researcher dashboard and report detail pages
+- [x] Two-way comments with triage team
 - [ ] Report drafts (save before submit)
-- [ ] Duplicate detection
-- [ ] Report templates for common vulnerabilities
+- [ ] Automatic duplicate detection
+- [ ] Researcher-facing report templates for common vulnerabilities
 - [ ] Submission wizard/guide
+- [ ] Researcher opt-in/opt-out preferences for public recognition
 
 **Triage Workflow**
+- [x] Status lifecycle management
+- [x] Assignment/self-assignment
+- [x] Severity adjustment
+- [x] Manual duplicate status support
 - [ ] Bulk actions (assign/close multiple reports)
 - [ ] Custom report labels/tags
 - [ ] Saved filters
@@ -295,27 +320,39 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 - [ ] CVE/advisory linking
 
 **Integration & API**
+- [x] Clerk authentication integration
+- [x] Optional Discord webhook for new report notifications
+- [ ] Program Settings module (`/admin/settings`)
+- [ ] Integration Management module (`/admin/integrations`)
 - [ ] Public API for researchers
 - [ ] Jira/GitHub issue integration
 - [ ] Custom webhooks
 - [ ] API documentation
 
 **Dashboard Enhancements**
+- [x] Search, sorting, pagination, and result counts across core tables
 - [ ] Customizable widgets
-- [ ] Real-time updates (WebSocket)
+- [ ] Real-time updates (WebSocket or server-sent events)
 - [ ] Dark mode
 - [ ] Keyboard shortcuts
 
-### Development Releases (Pre-Production)
+### Release History
 
-> **Note:** Using `0.x.y` versioning during active development. Version `1.0.0` will mark the first production-ready release.
+> **Note:** Earlier development builds used `0.x.y` versions. Current releases use `1.x.y` tags while the platform remains in public alpha.
 
-**v0.6.0-dev (May 18, 2026)** - Current
+**v1.0.5-hotfix (May 22, 2026)** - Current
+- ✅ Email privacy hotfix across activity logs, audit logs, and user display
+- ✅ Unified Timeline improvements
+- ✅ Internal/public visibility toggles for comments and audit logs
+- ✅ Response Templates integrated into triage communication
+- ✅ Assigned triager display now uses names instead of email addresses
+
+**v0.6.0-dev (May 18, 2026)**
 - ✅ Activity Logs feature with centralized viewer
 - ✅ Advanced filtering and search capabilities
 - ✅ CSV export for compliance
 - ✅ Color-coded timeline view
-- ✅ Email display instead of Clerk IDs
+- ✅ User display improvements for activity logs
 - ✅ User data deletion guide (GDPR compliance)
 
 **v0.5.0-dev (May 16, 2026)**
@@ -347,11 +384,11 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 
 ---
 
-### Roadmap to v1.0.0 (Production Release)
+### Production Readiness Roadmap
 
-**Required for 1.0.0:**
+**Required before removing public-alpha status:**
 - [ ] Security audit completion
-- [ ] Comprehensive testing suite
+- [ ] Comprehensive testing suite expansion (unit tests and public E2E smoke tests exist)
 - [ ] Production deployment infrastructure
 - [ ] User acceptance testing
 - [ ] Performance optimization
