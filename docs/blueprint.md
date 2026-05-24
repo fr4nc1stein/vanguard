@@ -11,7 +11,7 @@ A HackerOne-style vulnerability disclosure platform for Vanguard VDP. Researcher
 | Layer | Technology |
 |-------|-----------|
 | Framework | Next.js 16.2.5 (App Router) |
-| Runtime | Cloudflare Workers (Edge) via `@cloudflare/next-on-pages` |
+| Runtime | Cloudflare Workers via `@opennextjs/cloudflare` |
 | Hosting | Cloudflare Pages |
 | Database | Cloudflare D1 (SQLite) |
 | ORM | Drizzle ORM (`drizzle-orm/d1`) |
@@ -43,8 +43,9 @@ vanguard-vdp/
 │   ├── hall-of-fame/page.tsx           # Public Hall of Fame
 │   ├── submit/page.tsx                 # Submit form (auth required)
 │   ├── dashboard/page.tsx              # Researcher's report list
-│   ├── admin/page.tsx                  # Admin triage panel
-│   ├── admin/reports/[id]/page.tsx     # Admin report detail + triage
+│   ├── triage/page.tsx                 # Triage queue (TRIAGER/ADMIN)
+│   ├── triage/reports/[id]/page.tsx    # Report detail + triage
+│   ├── admin/page.tsx                  # Admin console (ADMIN)
 │   ├── sign-in/[[...sign-in]]/page.tsx # Clerk sign-in (catch-all)
 │   ├── sign-up/[[...sign-up]]/page.tsx # Clerk sign-up (catch-all)
 │   ├── components/
@@ -58,7 +59,6 @@ vanguard-vdp/
 │       ├── admin/reports/route.ts      # GET all reports (admin)
 │       ├── admin/reports/[id]/status/route.ts  # PATCH triage action
 │       ├── admin/stats/route.ts        # GET dashboard stats
-│       ├── submit-report/route.ts      # Legacy stub (edge runtime)
 │       └── upload/presign/route.ts     # DISABLED — returns 410
 ├── lib/
 │   ├── db/
@@ -67,10 +67,12 @@ vanguard-vdp/
 │   ├── crypto.ts                       # AES-GCM-256 encrypt/decrypt + SHA-256 hash
 │   ├── validation.ts                   # Zod schemas (ReportSubmitSchema, TriageUpdateSchema)
 │   ├── auth.ts                         # requireRole(), getSessionRole()
-│   ├── audit.ts                        # logAudit()
-│   └── r2.ts                           # Unused — R2 removed (kept for type ref)
+│   └── audit.ts                        # logAudit()
 ├── migrations/
-│   └── 0001_schema.sql                 # D1 schema: reports + audit_logs tables
+│   ├── 0001_schema.sql                 # Base D1 schema: reports + audit_logs
+│   ├── 003_create_scopes_table.sql     # Dynamic scope targets
+│   ├── 004_create_comments_table.sql   # Researcher/staff comments
+│   └── 0005+                           # Hall of Fame, templates, privacy, flags
 ├── middleware.ts                       # Clerk auth — protects /admin, /dashboard, /submit
 ├── instrumentation.ts                  # setupDevPlatform() for local dev (Node runtime only)
 ├── wrangler.toml                       # CF Pages config + D1 binding
@@ -87,7 +89,7 @@ vanguard-vdp/
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | TEXT PK | UUIDv4 |
-| `ref_id` | TEXT UNIQUE | BGP-YYYY-XXXX (public reference) |
+| `ref_id` | TEXT UNIQUE | VVDP-[S]-YYYY-XXXXXXXX (public reference) |
 | `handle` | TEXT | Researcher handle (optional) |
 | `email_encrypted` | TEXT | AES-GCM ciphertext |
 | `email_iv` | TEXT | IV for email decryption |
@@ -155,10 +157,11 @@ Routes protected by `middleware.ts`:
 ### Input Validation
 - All API inputs validated with **Zod** before processing
 - Frontend validation mirrors server-side rules exactly (same min/max lengths) to prevent false success on 422 errors
+- Report targets are checked against active records in the `scopes` table
 
 ### Headers & CSP
 - Deployed on Cloudflare Pages which enforces HTTPS
-- Edge runtime (`export const runtime = 'edge'`) on all API routes and dynamic pages
+- Do not set `export const runtime = 'edge'` in app files. The OpenNext Cloudflare wrapper handles the runtime.
 
 ---
 
@@ -224,7 +227,7 @@ npm run deploy
 - ✅ Root layout configured with `signInUrl="/sign-in"` and `signUpUrl="/sign-up"`
 - ✅ Middleware protects all authenticated routes (`/admin`, `/dashboard`, `/submit`)
 - ✅ Role-based access control (RBAC) enforced at middleware and API levels
-- ✅ All API routes use edge runtime
+- ✅ OpenNext Cloudflare runtime is configured centrally
 - ✅ Encryption and audit logging fully operational
 
 ### Optional Cleanup Tasks
@@ -232,4 +235,3 @@ npm run deploy
 | Item | Detail | Priority |
 |------|--------|----------|
 | `middleware.ts` deprecation | Next.js 16 deprecates `middleware.ts` in favour of `proxy.ts` — Clerk doesn't fully support proxy convention yet, leave as-is | Low |
-| `app/api/submit-report/route.ts` | Legacy stub route — safe to delete if not referenced | Low |

@@ -11,10 +11,16 @@ export type  ReportStatus   = (typeof VALID_STATUSES)[number];
 export const TEMPLATE_CATEGORIES = ['triage', 'acceptance', 'rejection', 'info_request', 'general'] as const;
 export type  TemplateCategory   = (typeof TEMPLATE_CATEGORIES)[number];
 
-export const VALID_TARGETS = [
+export const BOOTSTRAP_SCOPE_TARGETS = [
   'vanguard.laet4x.com',
   'laet4x.com',
 ] as const;
+
+/**
+ * Initial scope seed values retained for tests and bootstrap migrations only.
+ * Runtime target validation is database-backed via the active `scopes` table.
+ */
+export const VALID_TARGETS = BOOTSTRAP_SCOPE_TARGETS;
 
 export const VULN_TYPES = [
   'Broken Access Control',
