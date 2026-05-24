@@ -1,0 +1,11 @@
+User-agent: *
+
+# Protected application surfaces
+Disallow: /admin
+Disallow: /triage
+Disallow: /dashboard
+Disallow: /api
+Disallow: /sign-in
+Disallow: /sign-up
+
+# Public pages such as /, /hall-of-fame, /policy, and /submit remain crawlable by default.
