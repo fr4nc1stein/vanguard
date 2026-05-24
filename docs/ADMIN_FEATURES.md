@@ -2,449 +2,372 @@
 
 ## Overview
 
-This document outlines the enterprise-level administrative features for Vanguard VDP, separate from the Triage workflow. These features are designed for platform management and configuration.
+This document tracks the current admin and triage feature surface in the codebase. It is based on the checked-in routes, API handlers, migrations, and database schema.
+
+**Last Updated:** May 24, 2026
+**Status:** Active implementation tracker
+**Owner:** Platform Team
 
 ---
 
-## 🎯 Feature Categories
+## Current Status Summary
+
+| Area | Status | Notes |
+|---|---:|---|
+| Triage workflow | Done | Queue, report detail, status changes, severity changes, assignment, comments |
+| User management | Done | Clerk user listing and role updates |
+| Scope management | Done | Database-backed target CRUD and public scope API |
+| Analytics dashboard | Done | Metrics, distributions, trends, top reporters/targets, CSV export |
+| Activity logs | Done | Admin viewer, filters, search, pagination, CSV export |
+| Hall of Fame management | Done | Leaderboard, hacktivity, points config, visibility controls |
+| Response templates | Done | Template CRUD, variables, preview, triage usage |
+| Program settings | Pending | No `/admin/settings`, API route, or `program_settings` table yet |
+| Integration management | Pending | No `/admin/integrations`, API route, or `integrations` table yet |
+| Notifications | Partial | New-report Discord webhook exists; email/in-app/configurable integrations pending |
+| Advanced workflow features | Pending | Bulk actions, labels/tags, saved filters, bounty tracking, CVE/advisory linking |
+
+---
+
+## Implemented Features
 
 ### 1. User Management
-**Purpose:** Manage platform users and their roles
 
-**Features:**
-- **User Listing**
-  - Display all Clerk users with pagination
-  - Show: Name, Email, Role, Join Date, Last Active
-  - Filter by role (USER, TRIAGER, ADMIN)
-  - Search by name or email
-  
-- **Role Management**
-  - Promote USER → TRIAGER
-  - Promote TRIAGER → ADMIN
-  - Demote ADMIN → TRIAGER
-  - Demote TRIAGER → USER
-  - Audit log for all role changes
-  
-- **User Actions**
-  - View user's submission history
-  - View user's triage activity (for TRIAGER/ADMIN)
-  - Suspend/unsuspend user accounts
-  - Delete user accounts (with confirmation)
+**Status:** Done
 
-**Implementation:**
-- Route: `/admin/users`
-- API: `/api/admin/users` (GET, PATCH)
-- Permissions: ADMIN only
-- Uses Clerk Backend API for user management
+**Implemented:**
+- `/admin/users`
+- `/api/admin/users`
+- `/api/admin/users/[id]`
+- Clerk Backend API integration
+- User listing with search, sort, and pagination
+- Role display for `USER`, `TRIAGER`, and `ADMIN`
+- Role promotion/demotion through Clerk public metadata
+- Confirmation dialog and toast feedback for role changes
+- Safer admin handling: admin role changes are intentionally constrained through Clerk/manual workflows
+
+**Still Pending:**
+- User submission history from the user management page
+- Triager activity detail view
+- Suspend/unsuspend user actions
+- Full user deletion UI
+- Audit-log entries for all role changes
 
 ---
 
 ### 2. Scope Management
-**Purpose:** Define and manage in-scope targets for vulnerability submissions
 
-**Features:**
-- **Target CRUD**
-  - Add new target domains/URLs
-  - Edit existing targets
-  - Remove targets (soft delete)
-  - Mark targets as active/inactive
-  
-- **Target Details**
-  - Domain/URL
-  - Description
-  - Target type (Web App, API, Mobile App, Infrastructure)
-  - Status (Active, Deprecated, Out of Scope)
-  - Added date and by whom
-  
-- **Scope Rules**
-  - Define allowed vulnerability types per target
-  - Set severity restrictions
-  - Add scope notes/guidelines
-  - Exclusions (e.g., /admin paths, third-party services)
+**Status:** Done
 
-**Implementation:**
-- Route: `/admin/scope`
-- API: `/api/admin/scope` (GET, POST, PATCH, DELETE)
-- Database: New `scopes` table
-- Permissions: ADMIN only
-- Updates submission form dynamically
+**Implemented:**
+- `/admin/scope`
+- `/api/admin/scopes`
+- `/api/admin/scopes/[id]`
+- `/api/scopes` for public/submit-form scope loading
+- `scopes` table migration
+- Create, edit, and delete targets
+- Target type support: `web_app`, `api`, `mobile`, `infrastructure`
+- Scope status support: `active`, `deprecated`, `out_of_scope`
+- Search, sort, pagination, confirmations, and toast feedback
+- Submission form uses database-backed scope targets
+
+**Still Pending:**
+- Allowed vulnerability types per target
+- Severity restrictions per target
+- Scope notes/guidelines and exclusions
+- Soft-delete/archive flow instead of hard delete
 
 ---
 
-### 3. Program Settings
-**Purpose:** Configure VDP program parameters
+### 3. Analytics & Reporting
 
-**Features:**
-- **Response SLAs**
-  - Acknowledgment time (default: 48 hours)
-  - Initial response time (default: 7 days)
-  - Resolution time by severity
-  
-- **Bounty Configuration** (if enabled)
-  - Bounty ranges by severity
-  - Payment methods
-  - Minimum payout threshold
-  
-- **Notification Settings**
-  - Discord webhook URL
-  - Slack integration
-  - Email notification templates
-  - Notification triggers (new report, status change, etc.)
-  
-- **Submission Rules**
-  - Max file upload size
-  - Allowed file types
-  - Rate limiting per user
-  - Duplicate detection settings
+**Status:** Done, with advanced reporting still pending
 
-**Implementation:**
-- Route: `/admin/settings`
-- API: `/api/admin/settings` (GET, PATCH)
-- Database: New `program_settings` table
-- Permissions: ADMIN only
+**Implemented:**
+- `/admin/analytics`
+- `/api/admin/analytics`
+- Summary cards for total reports, recent reports, average response time, and resolved count
+- Severity and status distribution charts
+- Reports-over-time view
+- Top targets and top reporters
+- Date range selector for 7, 30, 90, and 365 days
+- CSV export from the analytics dashboard
+
+**Still Pending:**
+- Custom calendar date range picker
+- Export filtered/sorted data from every table
+- Scheduled weekly/monthly reports
+- Advanced trend analysis and custom report builder
 
 ---
 
-### 4. Analytics & Reporting
-**Purpose:** Platform insights and metrics
+### 4. Activity Logs
 
-**Features:**
-- **Dashboard Metrics**
-  - Total reports by time period
-  - Reports by severity distribution
-  - Average response time
-  - Top reporters (Hall of Fame candidates)
-  - Triage team performance
-  
-- **Trend Analysis**
-  - Report volume over time (chart)
-  - Severity trends
-  - Target vulnerability hotspots
-  - MTTR (Mean Time To Resolution) by severity
-  
-- **Export Capabilities**
-  - Export reports as CSV/JSON
-  - Generate compliance reports
-  - Custom date range filtering
-  - Scheduled reports (future)
+**Status:** Done
 
-**Implementation:**
-- Route: `/admin/analytics`
-- API: `/api/admin/analytics` (GET)
-- Uses existing audit logs and reports data
-- Permissions: ADMIN and TRIAGER (read-only)
+**Implemented:**
+- `/admin/activity-logs`
+- `/api/admin/activity-logs`
+- `/api/admin/activity-logs/export`
+- Centralized timeline viewer
+- Action type filtering
+- Date range filtering
+- Actor/report filtering
+- Search, pagination, and result counts
+- CSV export
+- Report links back to triage detail pages
+- User display uses names instead of exposing emails or raw Clerk IDs
+- Internal/public visibility support for audit log entries
+
+**Still Pending:**
+- Broader action taxonomy for future workflows
+- Per-triager scoped audit views
+- Retention policy controls
 
 ---
 
-### 5. Activity Logs ✅ (Implemented v2.6.0)
-**Purpose:** Complete platform activity tracking and compliance
+### 5. Hall of Fame Management
 
-**Features:**
-- **Centralized Log Viewer** ✅
-  - Timeline view with color-coded action types
-  - Filter by action type (7 types supported)
-  - Filter by date range (start/end date pickers)
-  - Filter by actor ID or report ID
-  - Real-time search across all fields
-  - Pagination (50 logs per page)
-  
-- **CSV Export** ✅
-  - Export filtered logs to CSV
-  - Includes all log fields (timestamp, action, actor, report, values)
-  - Auto-download with timestamped filename
-  - Respects active filters
-  
-- **Display Features** ✅
-  - Actor email display (instead of Clerk IDs)
-  - Before/after value badges (color-coded)
-  - Clickable report links to triage page
-  - Statistics dashboard (total, current page, filtered count)
-  - Empty states and loading indicators
-  
-- **Compliance** ✅
-  - Immutable audit trail (no delete/edit)
-  - Admin-only access
-  - IP addresses stored as SHA-256 hashes
-  - CSV export for auditing
+**Status:** Done, with recognition enhancements pending
 
-**Supported Action Types:**
-1. `report_submitted` - 📝 Blue
-2. `status_changed` - 🔄 Green
-3. `severity_changed` - ⚠️ Orange
-4. `assigned` - 👤 Purple
-5. `poc_uploaded` - 📎 Indigo
-6. `report_viewed` - 👁️ Gray
-7. `report_decrypted` - 🔓 Yellow
+**Implemented:**
+- `/hall-of-fame`
+- `/admin/hall-of-fame`
+- `/api/hall-of-fame`
+- `/api/hall-of-fame/stats`
+- `/api/hacktivity`
+- `/api/admin/hall-of-fame/entries`
+- `/api/admin/hall-of-fame/leaderboard`
+- `/api/admin/hall-of-fame/settings`
+- `hall_of_fame`, `researcher_stats`, `hacktivity`, and `points_config` tables
+- Public leaderboard
+- Hacktivity feed
+- Auto-award points on accepted/fixed reports
+- Per-severity points configuration
+- Visibility toggles
+- Title redaction for sensitive values
+- Clerk avatars and display names
 
-**Implementation:**
-- Route: `/admin/activity-logs` ✅
-- API: `/api/admin/activity-logs` (GET) ✅
-- API: `/api/admin/activity-logs/export` (GET) ✅
-- Uses existing `audit_logs` table (no migration needed)
-- Permissions: ADMIN only
-- Live: https://vanguard.laet4x.com/admin/activity-logs
-
-**Known Limitations:**
-- User data comes from Clerk (no first_name/last_name in database)
-- Displays actor_email from audit_logs table
-- Future enhancement: Add more action types as needed
+**Still Pending:**
+- Manual public title editing in admin UI
+- Manual point adjustment with reason field
+- Leaderboard CSV export
+- Bulk visibility toggle
+- Researcher profile pages
+- Badges, milestones, and monthly/yearly awards
+- Researcher opt-in/opt-out preferences
+- Real-time leaderboard updates
 
 ---
 
-### 6. Hall of Fame Management
-**Purpose:** Manage researcher recognition
+### 6. Template Management
 
-**Features:**
-- **Researcher Profiles**
-  - Auto-populate from accepted reports
-  - Manual add/edit/remove
-  - Profile fields: Name, Handle, Bio, Social Links, Avatar
-  
-- **Recognition Tiers**
-  - Platinum (10+ critical/high findings)
-  - Gold (5-9 critical/high findings)
-  - Silver (3-4 critical/high findings)
-  - Bronze (1-2 critical/high findings)
-  
-- **Bounty Tracking** (if enabled)
-  - Total bounties paid per researcher
-  - Pending payments
-  - Payment history
+**Status:** Done for response templates
 
-**Implementation:**
-- Route: `/admin/hall-of-fame`
-- API: `/api/admin/hall-of-fame` (GET, POST, PATCH, DELETE)
-- Database: New `hall_of_fame` table
-- Permissions: ADMIN only
-- Public view at `/hall-of-fame` (already exists)
+**Implemented:**
+- `/admin/templates`
+- `/api/admin/templates`
+- `/api/admin/templates/[id]`
+- `response_templates` table migration
+- Template create, edit, preview, and soft delete
+- Template categories: `triage`, `acceptance`, `rejection`, `info_request`, `general`
+- Variable extraction and preview rendering
+- Seeded templates for duplicate, out-of-scope, need-more-info, accepted, and cannot-reproduce responses
+
+**Still Pending:**
+- Email delivery integration
+- Template version history
+- Dedicated researcher-facing vulnerability report templates
+- Automated template use for notifications
 
 ---
 
-### 7. Template Management
-**Purpose:** Standardize communications
+### 7. Communication & Collaboration
 
-**Features:**
-- **Email Templates**
-  - Report acknowledgment
-  - Status update notifications
-  - Acceptance/rejection messages
-  - Bounty payment notifications
-  
-- **Response Templates**
-  - Common triage responses
-  - Duplicate report message
-  - Out of scope message
-  - Insufficient information request
-  
-- **Template Variables**
-  - {{reporter_name}}, {{ref_id}}, {{severity}}, etc.
-  - Preview before sending
-  - Version history
+**Status:** Done for comments/internal notes, pending advanced collaboration
 
-**Implementation:**
-- Route: `/admin/templates`
-- API: `/api/admin/templates` (GET, POST, PATCH, DELETE)
-- Database: New `templates` table
-- Permissions: ADMIN only
+**Implemented:**
+- `/api/reports/[id]/comments`
+- `/api/reports/[id]/comments/[commentId]/toggle-internal`
+- `/api/reports/[id]/audit-logs/[logId]/toggle-internal`
+- `comments` table migration
+- Researcher/staff comments
+- Staff-only internal comments
+- Unified chronological timeline of comments and audit logs
+- Visibility toggles for internal/public entries
+- Markdown support for report content
+
+**Still Pending:**
+- @mentions in comments
+- Assignment notifications
+- Team activity feed
+- Saved per-user notification preferences
 
 ---
 
-### 8. Integration Management
-**Purpose:** Third-party service connections
+## Pending Admin Modules
 
-**Features:**
-- **Supported Integrations**
-  - Discord webhooks (already implemented)
-  - Slack notifications
-  - Jira issue creation
-  - GitHub Security Advisories
-  - Email (SMTP configuration)
-  
-- **Integration Settings**
-  - Enable/disable per integration
-  - Configure webhooks and API keys
-  - Test connection
-  - Event mapping (which events trigger which integrations)
+### Program Settings
 
-**Implementation:**
-- Route: `/admin/integrations`
-- API: `/api/admin/integrations` (GET, POST, PATCH, DELETE)
-- Database: New `integrations` table
-- Permissions: ADMIN only
+**Status:** Pending
+
+**Not implemented yet:**
+- `/admin/settings`
+- `/api/admin/settings`
+- `program_settings` table
+
+**Expected feature scope:**
+- Response SLA configuration
+- Bounty settings, if bounty mode is enabled
+- Notification triggers and defaults
+- Submission rules such as upload size, allowed file types, and rate limits
+- Duplicate detection settings
+- Data retention policy configuration
 
 ---
 
-## 🏗️ Implementation Priority
+### Integration Management
 
-### Phase 1 (High Priority - Immediate)
-1. ✅ **Triage Rename** - Completed
-2. **User Management** - List users, promote to TRIAGER
-3. **Scope Management** - Add/edit/remove targets
+**Status:** Pending
 
-### Phase 2 (Medium Priority - Next Sprint)
-4. **Program Settings** - Basic SLA and notification config
-5. **Analytics Dashboard** - Basic metrics and charts
-6. **Hall of Fame Management** - Dynamic population
+**Not implemented yet:**
+- `/admin/integrations`
+- `/api/admin/integrations`
+- `integrations` table
 
-### Phase 3 (Low Priority - Future)
-7. **Template Management** - Email and response templates
-8. **Integration Management** - Additional integrations beyond Discord
-9. **Advanced Analytics** - Trend analysis, custom reports
+**Expected feature scope:**
+- Enable/disable configured integrations
+- Slack notifications
+- Jira issue creation
+- GitHub issue/security advisory integration
+- SMTP/email provider configuration
+- Custom webhooks
+- Test connection action
+- Event-to-integration mapping
+
+**Current integration support:**
+- New report Discord webhook via `DISCORD_WEBHOOK_URL` in `/api/reports`
 
 ---
 
-## 🔐 Access Control
+## Pending Product Features
+
+### Researcher Experience
+
+- Report drafts before submit
+- Automatic duplicate detection
+- Submission wizard or guided report flow
+- Researcher-facing vulnerability templates
+- Researcher public recognition preferences
+
+### Triage Workflow
+
+- Bulk actions for assignment/status changes
+- Custom labels/tags
+- Saved filters
+- Quick actions menu
+- Bounty/reward tracking
+- CVE/advisory linking
+- Automatic duplicate suggestions
+
+### API & External Access
+
+- Public researcher API
+- API documentation
+- Webhook delivery logs
+- API keys or OAuth flow for external clients
+
+### Dashboard Enhancements
+
+- Customizable widgets
+- Real-time updates through WebSockets or server-sent events
+- Dark mode
+- Keyboard shortcuts
+
+---
+
+## Access Control
 
 **ADMIN Role Only:**
-- User Management (promote/demote roles)
-- Scope Management (CRUD targets)
-- Program Settings
-- Template Management
-- Integration Management
-- Full Audit Log access
+- Admin console
+- User Management
+- Scope Management
+- Template Management writes
+- Hall of Fame management
+- Full Activity Log access
+- Future Program Settings and Integration Management
 
 **TRIAGER Role:**
-- Analytics Dashboard (read-only)
-- Audit Logs (own actions only)
+- Triage queue
+- Report detail and status/severity/assignment workflow
+- Commenting and internal notes
+- Analytics read access
+- Template read/use access
 
 **USER Role:**
-- No admin access
+- Submit reports
+- View own dashboard
+- View own report details
+- Comment on own reports
 
 ---
 
-## 📊 Database Schema Changes
+## Current Database Tables
 
-### New Tables Required
+Defined in Drizzle schema:
+- `reports`
+- `audit_logs`
+- `scopes`
+- `comments`
+- `points_config`
+- `researcher_stats`
+- `hall_of_fame`
+- `hacktivity`
 
-```sql
--- Scope targets
-CREATE TABLE scopes (
-  id TEXT PRIMARY KEY,
-  domain TEXT NOT NULL,
-  description TEXT,
-  target_type TEXT, -- 'web_app', 'api', 'mobile', 'infrastructure'
-  status TEXT DEFAULT 'active', -- 'active', 'deprecated', 'out_of_scope'
-  allowed_vuln_types TEXT, -- JSON array
-  exclusions TEXT, -- JSON array of excluded paths
-  notes TEXT,
-  created_by TEXT, -- Clerk user ID
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
-);
+Defined by migration and accessed through D1 prepared statements:
+- `response_templates`
 
--- Program settings
-CREATE TABLE program_settings (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL, -- JSON value
-  updated_by TEXT, -- Clerk user ID
-  updated_at INTEGER NOT NULL
-);
-
--- Hall of Fame
-CREATE TABLE hall_of_fame (
-  id TEXT PRIMARY KEY,
-  clerk_user_id TEXT,
-  handle TEXT NOT NULL,
-  name TEXT,
-  bio TEXT,
-  avatar_url TEXT,
-  social_links TEXT, -- JSON object
-  tier TEXT, -- 'platinum', 'gold', 'silver', 'bronze'
-  total_findings INTEGER DEFAULT 0,
-  critical_findings INTEGER DEFAULT 0,
-  high_findings INTEGER DEFAULT 0,
-  total_bounty REAL DEFAULT 0,
-  featured BOOLEAN DEFAULT FALSE,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
-);
-
--- Templates
-CREATE TABLE templates (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  type TEXT NOT NULL, -- 'email', 'response'
-  subject TEXT,
-  body TEXT NOT NULL,
-  variables TEXT, -- JSON array of available variables
-  created_by TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
-);
-
--- Integrations
-CREATE TABLE integrations (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL, -- 'discord', 'slack', 'jira', etc.
-  enabled BOOLEAN DEFAULT FALSE,
-  config TEXT NOT NULL, -- JSON config (webhook URLs, API keys, etc.)
-  event_mapping TEXT, -- JSON object mapping events to actions
-  created_by TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
-);
-```
+Not implemented yet:
+- `program_settings`
+- `integrations`
+- `notifications`
+- `report_labels` / `report_tags`
+- `saved_filters`
+- `report_drafts`
+- `bounties` / `rewards`
 
 ---
 
-## 🎨 UI/UX Considerations
+## Suggested Next Steps
 
-### Navigation Structure
-```
-Triage (current /admin)
-  └─ Report Listing
-  └─ Report Detail
+1. Implement Program Settings:
+   - Add `program_settings` migration and schema mapping
+   - Add `/admin/settings`
+   - Add `/api/admin/settings`
+   - Start with SLA, rate-limit, and notification trigger settings
 
-Admin (new /admin/management or /settings)
-  ├─ Users
-  ├─ Scope
-  ├─ Settings
-  ├─ Analytics
-  ├─ Audit Logs
-  ├─ Hall of Fame
-  ├─ Templates
-  └─ Integrations
-```
+2. Implement Integration Management:
+   - Add `integrations` migration and schema mapping
+   - Add `/admin/integrations`
+   - Add `/api/admin/integrations`
+   - Move Discord webhook configuration from env-only to managed settings where appropriate
 
-### Design Principles
-- Consistent with existing Vanguard VDP design
-- Use Tailwind CSS utility classes
-- Mobile-responsive
-- Clear action confirmations (especially for destructive actions)
-- Loading states and error handling
-- Toast notifications for success/error feedback
+3. Add notification infrastructure:
+   - Start with assignment and status-change notifications
+   - Add email provider abstraction
+   - Add notification preferences and delivery logs
+
+4. Improve triage productivity:
+   - Add labels/tags
+   - Add saved filters
+   - Add bulk actions
 
 ---
 
-## 🚀 Suggested Next Steps
+## Engineering Notes
 
-1. **Immediate:** Implement User Management
-   - Create `/admin/users` page
-   - List all Clerk users
-   - Add "Promote to TRIAGER" button
-   - Log role changes in audit log
-
-2. **Next:** Implement Scope Management
-   - Create `scopes` table migration
-   - Create `/admin/scope` page
-   - CRUD operations for targets
-   - Update submission form to use dynamic targets
-
-3. **Future:** Build out remaining features based on priority
-
----
-
-## 📝 Notes
-
-- All admin features should be behind ADMIN role check
-- Use existing auth patterns (`requireRole('ADMIN')`)
-- Maintain audit trail for all admin actions
-- Consider rate limiting for sensitive operations
-- Add confirmation dialogs for destructive actions
-- Implement proper error handling and user feedback
-
----
-
-**Last Updated:** May 15, 2026  
-**Status:** Planning Phase  
-**Owner:** Platform Team
+- Protect admin routes with `requireRole('ADMIN')`.
+- Allow triager read/use access only where needed, such as analytics and templates.
+- Maintain audit trails for sensitive admin actions.
+- Keep PII out of activity/audit API responses.
+- Prefer D1/Drizzle schema updates and migrations before UI work.
+- Test Cloudflare compatibility with `npm run dev:cf` for database-backed features.
