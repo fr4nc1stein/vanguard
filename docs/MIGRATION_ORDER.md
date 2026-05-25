@@ -11,6 +11,7 @@ Apply migrations in the order below for a fresh database. The filenames are not 
 7. `migrations/0008_add_title_disclosed.sql`
 8. `migrations/0009_add_internal_flags.sql`
 9. `migrations/0010_convert_assigned_to_user_ids.sql`
+10. `migrations/0011_support_user_audit_logs.sql`
 
 Run data maintenance scripts only after the schema migrations they depend on:
 

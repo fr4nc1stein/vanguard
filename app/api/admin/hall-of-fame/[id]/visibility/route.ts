@@ -63,6 +63,8 @@ export async function PATCH(
     await db.insert(auditLogs).values({
       id: crypto.randomUUID(),
       reportId: entry.reportId,
+      entityType: 'report',
+      entityId: entry.reportId,
       actorId: userId,
       actorEmail: null,
       action: 'hall_of_fame_visibility_toggled',

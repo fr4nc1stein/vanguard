@@ -14,9 +14,21 @@ interface User {
   lastName: string | null;
   username: string | null;
   role: string;
+  banned: boolean;
   createdAt: number;
   lastSignInAt: number | null;
   imageUrl: string;
+}
+
+interface ActivityEntry {
+  id: string;
+  reportId: string | null;
+  entityType: string;
+  entityId: string | null;
+  action: string;
+  oldValue: string | null;
+  newValue: string | null;
+  timestamp: number;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -33,6 +45,10 @@ export default function UserManagement() {
   const itemsPerPage = 25;
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ userId: string; newRole: string; userName: string } | null>(null);
+  const [suspendDialog, setSuspendDialog] = useState<{ userId: string; userName: string; suspend: boolean } | null>(null);
+  const [activityModal, setActivityModal] = useState<{ userId: string; userName: string } | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<keyof User | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -58,8 +74,8 @@ export default function UserManagement() {
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     if (!sortField) return 0;
     
-    let aVal: any = a[sortField];
-    let bVal: any = b[sortField];
+    let aVal: string | number | boolean | null = a[sortField];
+    let bVal: string | number | boolean | null = b[sortField];
     
     // Special handling for display name
     if (sortField === 'firstName') {
@@ -76,6 +92,9 @@ export default function UserManagement() {
       aVal = aVal.toLowerCase();
       bVal = bVal.toLowerCase();
     }
+
+    if (typeof aVal === 'boolean') aVal = aVal ? 1 : 0;
+    if (typeof bVal === 'boolean') bVal = bVal ? 1 : 0;
     
     if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
     if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
@@ -148,6 +167,43 @@ export default function UserManagement() {
       setToast({ message: err instanceof Error ? err.message : 'Failed to update role', type: 'error' });
     } finally {
       setUpdating(null);
+    }
+  }
+
+  async function suspendUser(userId: string, suspend: boolean) {
+    setUpdating(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/suspend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suspend }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update user');
+      }
+      await fetchUsers();
+      setToast({ message: suspend ? 'User suspended' : 'User unsuspended', type: 'success' });
+    } catch (err: unknown) {
+      setToast({ message: err instanceof Error ? err.message : 'Failed to update user', type: 'error' });
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function openActivityModal(userId: string, userName: string) {
+    setActivityModal({ userId, userName });
+    setActivityLog([]);
+    setActivityLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/activity`);
+      if (!res.ok) throw new Error('Failed to fetch activity');
+      const data = await res.json();
+      setActivityLog(data.activity);
+    } catch {
+      setToast({ message: 'Failed to load activity log', type: 'error' });
+    } finally {
+      setActivityLoading(false);
     }
   }
 
@@ -259,7 +315,7 @@ export default function UserManagement() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {paginatedUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={user.id} className={`hover:bg-gray-50 transition-colors ${user.banned ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
@@ -268,7 +324,12 @@ export default function UserManagement() {
                             className="w-8 h-8 rounded-full"
                           />
                           <div>
-                            <p className="font-medium text-gray-900">{getUserDisplayName(user)}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-900">{getUserDisplayName(user)}</p>
+                              {user.banned && (
+                                <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-xs font-medium rounded border border-red-200">🚫 Suspended</span>
+                              )}
+                            </div>
                             {user.username && <p className="text-xs text-gray-400">@{user.username}</p>}
                           </div>
                         </div>
@@ -286,7 +347,8 @@ export default function UserManagement() {
                         {user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString() : 'Never'}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Role actions */}
                           {user.role === 'USER' && (
                             <button
                               onClick={() => setConfirmDialog({ userId: user.id, newRole: 'TRIAGER', userName: getUserDisplayName(user) })}
@@ -316,6 +378,41 @@ export default function UserManagement() {
                           )}
                           {user.role === 'ADMIN' && (
                             <span className="text-xs text-gray-500 italic">Manage in Clerk</span>
+                          )}
+
+                          {/* Submission history (researchers only) */}
+                          {user.role === 'USER' && (
+                            <Link
+                              href={`/triage?clerk_user_id=${user.id}`}
+                              className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium rounded hover:bg-blue-100 transition-colors"
+                            >
+                              Reports →
+                            </Link>
+                          )}
+
+                          {/* Triager activity log */}
+                          {user.role === 'TRIAGER' && (
+                            <button
+                              onClick={() => openActivityModal(user.id, getUserDisplayName(user))}
+                              className="px-3 py-1 bg-gray-50 text-gray-700 border border-gray-200 text-xs font-medium rounded hover:bg-gray-100 transition-colors"
+                            >
+                              Activity
+                            </button>
+                          )}
+
+                          {/* Suspend / Unsuspend (non-admin users only) */}
+                          {user.role !== 'ADMIN' && (
+                            <button
+                              onClick={() => setSuspendDialog({ userId: user.id, userName: getUserDisplayName(user), suspend: !user.banned })}
+                              disabled={updating === user.id}
+                              className={`px-3 py-1 text-xs font-medium rounded transition-colors disabled:opacity-50 ${
+                                user.banned
+                                  ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                  : 'bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100'
+                              }`}
+                            >
+                              {user.banned ? 'Unsuspend' : 'Suspend'}
+                            </button>
                           )}
                         </div>
                       </td>
@@ -356,7 +453,7 @@ export default function UserManagement() {
         />
       )}
 
-      {/* Confirm Dialog */}
+      {/* Role change confirm dialog */}
       {confirmDialog && (
         <ConfirmDialog
           title="Promote to Triager"
@@ -368,6 +465,73 @@ export default function UserManagement() {
           }}
           onCancel={() => setConfirmDialog(null)}
         />
+      )}
+
+      {/* Suspend / Unsuspend confirm dialog */}
+      {suspendDialog && (
+        <ConfirmDialog
+          title={suspendDialog.suspend ? 'Suspend User' : 'Unsuspend User'}
+          message={
+            suspendDialog.suspend
+              ? `Are you sure you want to suspend ${suspendDialog.userName}? They will be immediately blocked from signing in.`
+              : `Are you sure you want to unsuspend ${suspendDialog.userName}? They will regain access to the platform.`
+          }
+          type={suspendDialog.suspend ? 'danger' : 'warning'}
+          onConfirm={() => {
+            suspendUser(suspendDialog.userId, suspendDialog.suspend);
+            setSuspendDialog(null);
+          }}
+          onCancel={() => setSuspendDialog(null)}
+        />
+      )}
+
+      {/* Triager activity modal */}
+      {activityModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-gray-900">
+                Activity — {activityModal.userName}
+              </h2>
+              <button onClick={() => setActivityModal(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-6 py-4">
+              {activityLoading ? (
+                <div className="flex justify-center py-10">
+                  <svg className="w-6 h-6 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+              ) : activityLog.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-10">No activity recorded yet.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                      <th className="pb-2 pr-4">Action</th>
+                      <th className="pb-2 pr-4">Old</th>
+                      <th className="pb-2 pr-4">New</th>
+                      <th className="pb-2">When</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {activityLog.map((entry) => (
+                      <tr key={entry.id}>
+                        <td className="py-2 pr-4 text-gray-700 font-medium">{entry.action.replace(/_/g, ' ')}</td>
+                        <td className="py-2 pr-4 text-gray-400">{entry.oldValue || '—'}</td>
+                        <td className="py-2 pr-4 text-gray-700">{entry.newValue || '—'}</td>
+                        <td className="py-2 text-gray-400 whitespace-nowrap">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

@@ -16,14 +16,25 @@ export type AuditAction =
   | 'assigned'
   | 'poc_uploaded'
   | 'report_viewed'
-  | 'report_decrypted';
+  | 'report_decrypted'
+  | 'role_changed'
+  | 'user_suspended'
+  | 'user_unsuspended';
 
 // Internal actions that should only be visible to triagers/admins
-const INTERNAL_ACTIONS: AuditAction[] = ['assigned', 'severity_changed'];
+const INTERNAL_ACTIONS: AuditAction[] = [
+  'assigned',
+  'severity_changed',
+  'role_changed',
+  'user_suspended',
+  'user_unsuspended',
+];
 
 interface LogAuditParams {
   db:         DbClient;
-  reportId:   string;
+  reportId?:  string;
+  entityType?: 'report' | 'user' | 'system';
+  entityId?:   string;
   actorId:    string;
   actorEmail?: string;
   action:     AuditAction;
@@ -44,10 +55,14 @@ export async function logAudit(params: LogAuditParams): Promise<void> {
 
     // Determine if this action should be internal-only
     const isInternal = INTERNAL_ACTIONS.includes(params.action) ? 1 : 0;
+    const entityType = params.entityType ?? (params.reportId ? 'report' : 'system');
+    const entityId = params.entityId ?? params.reportId ?? entityType;
 
     await params.db.insert(auditLogs).values({
       id:         crypto.randomUUID(),
-      reportId:   params.reportId,
+      reportId:   entityType === 'report' ? params.reportId : null,
+      entityType,
+      entityId,
       actorId:    params.actorId,
       actorEmail: params.actorEmail,
       action:     params.action,

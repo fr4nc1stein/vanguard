@@ -17,19 +17,20 @@ export async function GET(request: NextRequest) {
     // Parse + validate query params
     const sp     = request.nextUrl.searchParams;
     const parsed = PaginationSchema.safeParse({
-      page:       sp.get('page'),
-      per_page:   sp.get('per_page'),
-      status:     sp.get('status') ?? undefined,
-      severity:   sp.get('severity') ?? undefined,
-      target:     sp.get('target') ?? undefined,
-      q:          sp.get('q') ?? undefined,
-      assignedTo: sp.get('assigned_to') ?? undefined,
-      unassigned: sp.get('unassigned') ?? undefined,
+      page:        sp.get('page'),
+      per_page:    sp.get('per_page'),
+      status:      sp.get('status') ?? undefined,
+      severity:    sp.get('severity') ?? undefined,
+      target:      sp.get('target') ?? undefined,
+      q:           sp.get('q') ?? undefined,
+      assignedTo:  sp.get('assigned_to') ?? undefined,
+      unassigned:  sp.get('unassigned') ?? undefined,
+      clerkUserId: sp.get('clerk_user_id') ?? undefined,
     });
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid query params' }, { status: 400 });
     }
-    const { page = 1, per_page = 20, status, severity, target, q, assignedTo, unassigned } = parsed.data;
+    const { page = 1, per_page = 20, status, severity, target, q, assignedTo, unassigned, clerkUserId } = parsed.data;
 
     const db = getDb(getCfEnv().DB);
 
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
     if (target)   conditions.push(eq(reports.target, target));
     if (assignedTo) conditions.push(eq(reports.assignedTo, assignedTo));
     if (unassigned === 'true') conditions.push(isNull(reports.assignedTo));
+    if (clerkUserId) conditions.push(eq(reports.clerkUserId, clerkUserId));
     if (q) {
       // Sanitize user input to prevent SQL injection via LIKE wildcards
       const sanitized = q.replace(/[%_\\]/g, '\\$&');
