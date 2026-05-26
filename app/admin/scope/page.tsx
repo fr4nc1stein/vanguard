@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -13,10 +13,27 @@ interface Scope {
   description: string | null;
   targetType: string;
   status: string;
+  allowedVulnTypes: string | null;    // JSON array string
+  severityRestriction: string | null; // JSON array string
+  notes: string | null;
+  exclusionPaths: string | null;
+  deletedAt: number | null;
   createdBy: string;
   createdAt: number;
   updatedAt: number;
 }
+
+const ALL_VULN_TYPES = [
+  'Broken Access Control', 'Cryptographic Failure', 'Injection (SQL / XSS / Command / SSTI)',
+  'Insecure Design', 'Security Misconfiguration', 'Vulnerable or Outdated Component',
+  'Authentication / Session Failure', 'Software & Data Integrity Failure',
+  'SSRF (Server-Side Request Forgery)', 'Business Logic Flaw',
+  'Information Disclosure / Data Leak', 'IDOR (Insecure Direct Object Reference)',
+  'Open Redirect', 'Clickjacking / UI Redressing', 'CORS Misconfiguration',
+  'Path Traversal / File Inclusion', 'Other',
+] as const;
+
+const ALL_SEVERITIES = ['Critical', 'High', 'Medium', 'Low', 'Info'] as const;
 
 const TARGET_TYPE_LABELS: Record<string, string> = {
   web_app: "Web Application",
@@ -29,6 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-700 border-green-200",
   deprecated: "bg-yellow-100 text-yellow-700 border-yellow-200",
   out_of_scope: "bg-red-100 text-red-700 border-red-200",
+  archived: "bg-gray-100 text-gray-700 border-gray-200",
 };
 
 export default function ScopeManagement() {
@@ -42,18 +60,42 @@ export default function ScopeManagement() {
     description: "",
     targetType: "web_app",
     status: "active",
+    allowedVulnTypes: [] as string[],
+    severityRestriction: [] as string[],
+    notes: "",
+    exclusionPaths: "",
   });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; domain: string } | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<keyof Scope | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  const fetchScopes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = showArchived ? '?include_archived=true' : '';
+      const res = await fetch(`/api/admin/scopes${params}`);
+      if (!res.ok) throw new Error('Failed to fetch scopes');
+      const data = await res.json();
+      setScopes(data.scopes);
+    } catch (err) {
+      console.error('[fetchScopes]', err);
+      setToast({
+        message: 'Failed to load scopes',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [showArchived]);
+
   useEffect(() => {
     fetchScopes();
-  }, []);
+  }, [fetchScopes]);
 
   // Search and filter logic
   const filteredScopes = scopes.filter(scope => {
@@ -63,7 +105,8 @@ export default function ScopeManagement() {
       scope.domain.toLowerCase().includes(query) ||
       (scope.description && scope.description.toLowerCase().includes(query)) ||
       scope.targetType.toLowerCase().includes(query) ||
-      scope.status.toLowerCase().includes(query)
+      scope.status.toLowerCase().includes(query) ||
+      (scope.deletedAt !== null && 'archived'.includes(query))
     );
   });
 
@@ -71,8 +114,8 @@ export default function ScopeManagement() {
   const sortedScopes = [...filteredScopes].sort((a, b) => {
     if (!sortField) return 0;
     
-    let aVal: any = a[sortField];
-    let bVal: any = b[sortField];
+    let aVal: string | number | null = a[sortField];
+    let bVal: string | number | null = b[sortField];
     
     // Handle null values
     if (aVal === null || aVal === undefined) return 1;
@@ -118,24 +161,6 @@ export default function ScopeManagement() {
     return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  async function fetchScopes() {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/scopes');
-      if (!res.ok) throw new Error('Failed to fetch scopes');
-      const data = await res.json();
-      setScopes(data.scopes);
-    } catch (err) {
-      console.error('[fetchScopes]', err);
-      setToast({
-        message: 'Failed to load scopes',
-        type: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -158,7 +183,7 @@ export default function ScopeManagement() {
       await fetchScopes();
       setShowAddModal(false);
       setEditingScope(null);
-      setFormData({ domain: "", description: "", targetType: "web_app", status: "active" });
+      setFormData({ domain: "", description: "", targetType: "web_app", status: "active", allowedVulnTypes: [], severityRestriction: [], notes: "", exclusionPaths: "" });
       setToast({
         message: editingScope ? 'Scope updated successfully!' : 'Scope added successfully!',
         type: 'success'
@@ -195,13 +220,40 @@ export default function ScopeManagement() {
 
       await fetchScopes();
       setToast({
-        message: 'Scope deleted successfully!',
+        message: 'Scope archived successfully!',
         type: 'success'
       });
     } catch (err: unknown) {
       console.error('[handleDelete]', err);
       setToast({
         message: err instanceof Error ? err.message : 'Failed to delete scope',
+        type: 'error'
+      });
+    }
+  }
+
+  async function restoreScope(id: string) {
+    try {
+      const res = await fetch(`/api/admin/scopes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restore: true }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to restore scope');
+      }
+
+      await fetchScopes();
+      setToast({
+        message: 'Scope restored successfully!',
+        type: 'success'
+      });
+    } catch (err: unknown) {
+      console.error('[restoreScope]', err);
+      setToast({
+        message: err instanceof Error ? err.message : 'Failed to restore scope',
         type: 'error'
       });
     }
@@ -214,6 +266,10 @@ export default function ScopeManagement() {
       description: scope.description || "",
       targetType: scope.targetType,
       status: scope.status,
+      allowedVulnTypes: scope.allowedVulnTypes ? JSON.parse(scope.allowedVulnTypes) : [],
+      severityRestriction: scope.severityRestriction ? JSON.parse(scope.severityRestriction) : [],
+      notes: scope.notes || "",
+      exclusionPaths: scope.exclusionPaths || "",
     });
     setShowAddModal(true);
   }
@@ -221,7 +277,19 @@ export default function ScopeManagement() {
   function closeModal() {
     setShowAddModal(false);
     setEditingScope(null);
-    setFormData({ domain: "", description: "", targetType: "web_app", status: "active" });
+    setFormData({ domain: "", description: "", targetType: "web_app", status: "active", allowedVulnTypes: [], severityRestriction: [], notes: "", exclusionPaths: "" });
+  }
+
+  function toggleArrayField(field: 'allowedVulnTypes' | 'severityRestriction', value: string) {
+    setFormData(prev => {
+      const current = prev[field];
+      return {
+        ...prev,
+        [field]: current.includes(value)
+          ? current.filter(v => v !== value)
+          : [...current, value],
+      };
+    });
   }
 
   return (
@@ -241,6 +309,16 @@ export default function ScopeManagement() {
               className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
             >
               + Add Target
+            </button>
+            <button
+              onClick={() => setShowArchived((value) => !value)}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg border transition-colors ${
+                showArchived
+                  ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {showArchived ? 'Hide Archived' : 'Show Archived'}
             </button>
             <Link
               href="/admin"
@@ -280,15 +358,19 @@ export default function ScopeManagement() {
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Active</p>
-            <p className="text-2xl font-bold text-green-700">{scopes.filter(s => s.status === 'active').length}</p>
+            <p className="text-2xl font-bold text-green-700">{scopes.filter(s => s.status === 'active' && s.deletedAt === null).length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Deprecated</p>
-            <p className="text-2xl font-bold text-yellow-700">{scopes.filter(s => s.status === 'deprecated').length}</p>
+            <p className="text-2xl font-bold text-yellow-700">{scopes.filter(s => s.status === 'deprecated' && s.deletedAt === null).length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Out of Scope</p>
-            <p className="text-2xl font-bold text-red-700">{scopes.filter(s => s.status === 'out_of_scope').length}</p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">{showArchived ? 'Archived' : 'Out of Scope'}</p>
+            <p className={`text-2xl font-bold ${showArchived ? 'text-gray-700' : 'text-red-700'}`}>
+              {showArchived
+                ? scopes.filter(s => s.deletedAt !== null).length
+                : scopes.filter(s => s.status === 'out_of_scope' && s.deletedAt === null).length}
+            </p>
           </div>
         </div>
 
@@ -337,7 +419,7 @@ export default function ScopeManagement() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {paginatedScopes.map((scope) => (
-                    <tr key={scope.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={scope.id} className={`hover:bg-gray-50 transition-colors ${scope.deletedAt !== null ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
                         <p className="font-mono text-sm text-gray-900">{scope.domain}</p>
                       </td>
@@ -350,8 +432,8 @@ export default function ScopeManagement() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold capitalize ${STATUS_COLORS[scope.status] || STATUS_COLORS.active}`}>
-                          {scope.status.replace('_', ' ')}
+                        <span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold capitalize ${scope.deletedAt !== null ? STATUS_COLORS.archived : STATUS_COLORS[scope.status] || STATUS_COLORS.active}`}>
+                          {scope.deletedAt !== null ? 'archived' : scope.status.replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-500">
@@ -359,18 +441,29 @@ export default function ScopeManagement() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEditModal(scope)}
-                            className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => confirmDelete(scope.id, scope.domain)}
-                            className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            Delete
-                          </button>
+                          {scope.deletedAt === null ? (
+                            <>
+                              <button
+                                onClick={() => openEditModal(scope)}
+                                className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => confirmDelete(scope.id, scope.domain)}
+                                className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                Archive
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => restoreScope(scope.id)}
+                              className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
+                            >
+                              Restore
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -402,7 +495,7 @@ export default function ScopeManagement() {
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               {editingScope ? 'Edit Target' : 'Add New Target'}
             </h2>
@@ -465,6 +558,82 @@ export default function ScopeManagement() {
                 </select>
               </div>
 
+              {/* Allowed Vulnerability Types */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Allowed Vulnerability Types
+                  <span className="ml-1 text-xs text-gray-400 font-normal">(leave empty = all allowed)</span>
+                </label>
+                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                  {ALL_VULN_TYPES.map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleArrayField('allowedVulnTypes', type)}
+                      className={`px-2 py-1 text-xs rounded border transition-colors ${
+                        formData.allowedVulnTypes.includes(type)
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Severity Restriction */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Severity Restriction
+                  <span className="ml-1 text-xs text-gray-400 font-normal">(leave empty = all allowed)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_SEVERITIES.map(sev => (
+                    <button
+                      key={sev}
+                      type="button"
+                      onClick={() => toggleArrayField('severityRestriction', sev)}
+                      className={`px-3 py-1 text-xs rounded border transition-colors ${
+                        formData.severityRestriction.includes(sev)
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {sev}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes / Guidelines for Researchers
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Special instructions, known issues, testing environment details..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              {/* Exclusion Paths */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Exclusion Paths / Out-of-Scope Rules
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.exclusionPaths}
+                  onChange={(e) => setFormData({ ...formData, exclusionPaths: e.target.value })}
+                  placeholder="/admin/*, /health, third-party login pages..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
@@ -501,11 +670,11 @@ export default function ScopeManagement() {
       {/* Confirm Delete Dialog */}
       {confirmDialog && (
         <ConfirmDialog
-          title="Delete Target"
-          message={`Are you sure you want to delete "${confirmDialog.domain}"? This action cannot be undone.`}
-          confirmText="Delete"
+          title="Archive Target"
+          message={`Are you sure you want to archive "${confirmDialog.domain}"? It will no longer appear in the submission form or scope list. This can be undone by an admin.`}
+          confirmText="Archive"
           cancelText="Cancel"
-          type="danger"
+          type="warning"
           onConfirm={handleDelete}
           onCancel={() => setConfirmDialog(null)}
         />

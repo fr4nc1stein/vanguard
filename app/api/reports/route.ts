@@ -10,7 +10,7 @@
  * - Optionally notifies via Discord webhook
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { getDb, getCfEnv } from '@/lib/db';
 import { reports, scopes } from '@/lib/db/schema';
 import { encryptText, hashValue } from '@/lib/crypto';
@@ -27,6 +27,16 @@ function generateRefId(severity: string): string {
   // Severity code: C (Critical), H (High), M (Medium), L (Low), I (Info)
   const severityCode = severity.charAt(0).toUpperCase();
   return `VVDP-${severityCode}-${year}-${random}`;
+}
+
+function parseScopeArray(value: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -69,13 +79,37 @@ export async function POST(request: NextRequest) {
 
     // ── Validate target against active scope records ─────────────────────────
     const activeScope = await db
-      .select({ id: scopes.id })
+      .select({
+        id: scopes.id,
+        allowedVulnTypes: scopes.allowedVulnTypes,
+        severityRestriction: scopes.severityRestriction,
+      })
       .from(scopes)
-      .where(and(eq(scopes.domain, data.target), eq(scopes.status, 'active')))
+      .where(and(
+        eq(scopes.domain, data.target),
+        eq(scopes.status, 'active'),
+        isNull(scopes.deletedAt),
+      ))
       .get();
     if (!activeScope) {
       return NextResponse.json(
         { error: 'Validation failed', details: { target: ['Target is not an active in-scope asset'] } },
+        { status: 422 },
+      );
+    }
+
+    const allowedVulnTypes = parseScopeArray(activeScope.allowedVulnTypes);
+    if (allowedVulnTypes.length > 0 && !allowedVulnTypes.includes(data.vulnType)) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: { vulnType: ['This vulnerability type is not allowed for the selected target'] } },
+        { status: 422 },
+      );
+    }
+
+    const severityRestriction = parseScopeArray(activeScope.severityRestriction);
+    if (severityRestriction.length > 0 && !severityRestriction.includes(data.severity)) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: { severity: ['This severity is not allowed for the selected target'] } },
         { status: 422 },
       );
     }

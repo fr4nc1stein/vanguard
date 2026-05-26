@@ -12,6 +12,10 @@ interface Scope {
   description: string | null;
   targetType: string;
   status: string;
+  allowedVulnTypes: string | null;    // JSON array string | null
+  severityRestriction: string | null; // JSON array string | null
+  notes: string | null;
+  exclusionPaths: string | null;
 }
 
 // ─── Vulnerability categories ─────────────────────────────────────────────────
@@ -148,6 +152,12 @@ export default function SubmitReport() {
   const [referenceId, setReferenceId] = useState<string | null>(null);
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [loadingScopes, setLoadingScopes] = useState(true);
+
+  const selectedScope = scopes.find(s => s.domain === form.target) ?? null;
+  const allowedVulnTypes: string[] = selectedScope?.allowedVulnTypes
+    ? JSON.parse(selectedScope.allowedVulnTypes) : [];
+  const allowedSeverities: string[] = selectedScope?.severityRestriction
+    ? JSON.parse(selectedScope.severityRestriction) : [];
 
   // Fetch active scopes from API
   useEffect(() => {
@@ -355,6 +365,25 @@ export default function SubmitReport() {
                 </select>
               </Field>
 
+              {/* Scope-specific restrictions banner */}
+              {selectedScope && (allowedVulnTypes.length > 0 || allowedSeverities.length > 0 || selectedScope.notes || selectedScope.exclusionPaths) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1.5 text-xs text-amber-800">
+                  <p className="font-semibold">⚠️ Scope restrictions for {selectedScope.domain}</p>
+                  {allowedVulnTypes.length > 0 && (
+                    <p><span className="font-medium">Accepted types:</span> {allowedVulnTypes.join(', ')}</p>
+                  )}
+                  {allowedSeverities.length > 0 && (
+                    <p><span className="font-medium">Accepted severities:</span> {allowedSeverities.join(', ')}</p>
+                  )}
+                  {selectedScope.notes && (
+                    <p><span className="font-medium">Notes:</span> {selectedScope.notes}</p>
+                  )}
+                  {selectedScope.exclusionPaths && (
+                    <p><span className="font-medium">Exclusions:</span> {selectedScope.exclusionPaths}</p>
+                  )}
+                </div>
+              )}
+
               <Field label="Vulnerability Type" required error={errors.vulnType}>
                 <select
                   value={form.vulnType}
@@ -363,7 +392,7 @@ export default function SubmitReport() {
                   data-error={errors.vulnType ? true : undefined}
                 >
                   <option value="">Select a type…</option>
-                  {VULN_TYPES.map((t) => (
+                  {(allowedVulnTypes.length > 0 ? allowedVulnTypes : VULN_TYPES).map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
@@ -375,7 +404,7 @@ export default function SubmitReport() {
                   Severity <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {SEVERITIES.map((s) => (
+                  {SEVERITIES.filter(s => allowedSeverities.length === 0 || allowedSeverities.includes(s.value)).map((s) => (
                     <button
                       key={s.value}
                       type="button"
