@@ -60,6 +60,28 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Learn From Corrections
+
+**When corrected, capture the pattern. Don't repeat the mistake.**
+
+After any user correction or rewrite:
+- Identify the rule that would have prevented it.
+- Log it in `tasks/lessons.md` as a short, actionable rule.
+- Review relevant lessons at the start of related tasks.
+
+The goal: mistake rate drops over time, not just within a session.
+
+## 6. Autonomous Execution
+
+**When the problem is clear, just solve it. Don't ask to be led.**
+
+If you have enough signal (error message, failing test, logs, reproduction steps):
+- Fix it. Don't ask for step-by-step hand-holding.
+- Point at the evidence, state what you're doing, then do it.
+- Over-asking when the answer is visible wastes the user's time.
+
+The line: ask when genuinely ambiguous. Execute when it's not.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
