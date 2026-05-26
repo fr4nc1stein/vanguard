@@ -4,7 +4,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { clerkClient } from '@clerk/nextjs/server';
-import { requireRole } from '@/lib/auth';
+import { requireRole, getSessionEmail } from '@/lib/auth';
+import { getDb, getCfEnv } from '@/lib/db';
+import { logAudit } from '@/lib/audit';
 import { z } from 'zod';
 
 // GET - List all users
@@ -25,6 +27,7 @@ export async function GET(_request: NextRequest) {
       lastName: user.lastName,
       username: user.username,
       role: (user.publicMetadata as { role?: string })?.role || 'USER',
+      banned: user.banned,
       createdAt: user.createdAt,
       lastSignInAt: user.lastSignInAt,
       imageUrl: user.imageUrl,
@@ -71,14 +74,28 @@ export async function PATCH(request: NextRequest) {
 
     const { userId, role } = parsed.data;
 
-    // Update user role in Clerk
+    // Fetch old role before updating
     const client = await clerkClient();
+    const targetUser = await client.users.getUser(userId);
+    const oldRole = (targetUser.publicMetadata as { role?: string })?.role || 'USER';
+
     await client.users.updateUser(userId, {
       publicMetadata: { role },
     });
 
-    // Log the role change (optional - could add to audit_logs)
-    console.log(`[ADMIN] User ${userId} role changed to ${role} by ${adminId}`);
+    // Write audit log for the role change
+    const adminEmail = await getSessionEmail();
+    const db = getDb(getCfEnv().DB);
+    await logAudit({
+      db,
+      entityType: 'user',
+      entityId: userId,
+      actorId: adminId,
+      actorEmail: adminEmail,
+      action: 'role_changed',
+      oldValue: oldRole,
+      newValue: role,
+    });
 
     return NextResponse.json({
       success: true,

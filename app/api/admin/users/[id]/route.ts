@@ -21,6 +21,7 @@ export async function GET(
       id: user.id,
       name: getDisplayName(user),
       email: user.emailAddresses[0]?.emailAddress,
+      banned: user.banned,
     });
   } catch (err) {
     console.error('[GET /api/admin/users/[id]]', err);

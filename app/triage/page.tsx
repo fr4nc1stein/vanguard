@@ -67,8 +67,12 @@ export default function AdminDashboard() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [assignmentFilter, setAssignmentFilter] = useState<"all" | "mine" | "unassigned">("all");
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [researcherFilter, setResearcherFilter] = useState<string | null>(null);
+  const [hasReadUrlFilters, setHasReadUrlFilters] = useState(false);
 
   const fetchReports = useCallback(async () => {
+    if (!hasReadUrlFilters) return;
+
     setLoading(true);
     const params = new URLSearchParams({ page: String(page), per_page: "20" });
     if (filterStatus !== "all")   params.set("status", filterStatus);
@@ -76,6 +80,7 @@ export default function AdminDashboard() {
     if (search)                   params.set("q", search);
     if (assignmentFilter === "mine" && currentUserEmail) params.set("assigned_to", currentUserEmail);
     if (assignmentFilter === "unassigned") params.set("unassigned", "true");
+    if (researcherFilter) params.set("clerk_user_id", researcherFilter);
 
     try {
       const res = await fetch(`/api/admin/reports?${params}`);
@@ -89,14 +94,14 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [page, filterStatus, filterSeverity, search, assignmentFilter, currentUserEmail]);
+  }, [page, filterStatus, filterSeverity, search, assignmentFilter, currentUserEmail, researcherFilter, hasReadUrlFilters]);
 
   // Client-side sorting of current page results
   const sortedReports = [...reports].sort((a, b) => {
     if (!sortField) return 0;
     
-    let aVal: any = a[sortField];
-    let bVal: any = b[sortField];
+    let aVal: string | number | null = a[sortField];
+    let bVal: string | number | null = b[sortField];
     
     // Handle null values
     if (aVal === null || aVal === undefined) return 1;
@@ -139,6 +144,12 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => { fetchReports(); }, [fetchReports]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setResearcherFilter(params.get("clerk_user_id"));
+    setHasReadUrlFilters(true);
+  }, []);
   
   useEffect(() => {
     // Get current user email from localStorage (set after first self-assignment)

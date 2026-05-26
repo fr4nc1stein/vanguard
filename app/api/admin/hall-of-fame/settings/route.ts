@@ -87,7 +87,9 @@ export async function PATCH(request: NextRequest) {
     // Log audit entry
     await db.insert(auditLogs).values({
       id: crypto.randomUUID(),
-      reportId: 'system',
+      reportId: null,
+      entityType: 'system',
+      entityId: 'points_config',
       actorId: userId,
       actorEmail: null,
       action: 'points_config_updated',

@@ -195,6 +195,8 @@ export async function awardPoints(
     await db.insert(auditLogs).values({
       id: crypto.randomUUID(),
       reportId: report.id,
+      entityType: 'report',
+      entityId: report.id,
       actorId,
       actorEmail: null,
       action: 'points_awarded',

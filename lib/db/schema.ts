@@ -28,7 +28,9 @@ export const reports = sqliteTable('reports', {
 // ── Audit Logs ────────────────────────────────────────────────────────────────
 export const auditLogs = sqliteTable('audit_logs', {
   id:         text('id').primaryKey(),
-  reportId:   text('report_id').notNull(),
+  reportId:   text('report_id'),
+  entityType: text('entity_type').notNull().default('report'),
+  entityId:   text('entity_id'),
   actorId:    text('actor_id').notNull(),
   actorEmail: text('actor_email'),
   action:     text('action').notNull(),
