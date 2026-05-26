@@ -43,14 +43,19 @@ export const auditLogs = sqliteTable('audit_logs', {
 
 // ── Scopes (In-Scope Targets) ────────────────────────────────────────────────
 export const scopes = sqliteTable('scopes', {
-  id:          text('id').primaryKey(),
-  domain:      text('domain').notNull(),
-  description: text('description'),
-  targetType:  text('target_type').notNull(), // 'web_app', 'api', 'mobile', 'infrastructure'
-  status:      text('status').notNull(), // 'active', 'deprecated', 'out_of_scope'
-  createdBy:   text('created_by').notNull(), // Clerk user ID
-  createdAt:   integer('created_at').notNull(),
-  updatedAt:   integer('updated_at').notNull(),
+  id:                  text('id').primaryKey(),
+  domain:              text('domain').notNull(),
+  description:         text('description'),
+  targetType:          text('target_type').notNull(), // 'web_app', 'api', 'mobile', 'infrastructure'
+  status:              text('status').notNull(), // 'active', 'deprecated', 'out_of_scope'
+  allowedVulnTypes:    text('allowed_vuln_types'),    // JSON array | null = all allowed
+  severityRestriction: text('severity_restriction'),  // JSON array | null = all allowed
+  notes:               text('notes'),                 // freeform guidance shown to researchers
+  exclusionPaths:      text('exclusion_paths'),       // freeform exclusion rules
+  deletedAt:           integer('deleted_at'),          // null = live, set = soft-deleted
+  createdBy:           text('created_by').notNull(), // Clerk user ID
+  createdAt:           integer('created_at').notNull(),
+  updatedAt:           integer('updated_at').notNull(),
 });
 
 // ── Comments (Researcher-Triager Communication) ──────────────────────────────

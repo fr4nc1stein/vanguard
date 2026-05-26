@@ -13,10 +13,26 @@ interface Scope {
   description: string | null;
   targetType: string;
   status: string;
+  allowedVulnTypes: string | null;    // JSON array string
+  severityRestriction: string | null; // JSON array string
+  notes: string | null;
+  exclusionPaths: string | null;
   createdBy: string;
   createdAt: number;
   updatedAt: number;
 }
+
+const ALL_VULN_TYPES = [
+  'Broken Access Control', 'Cryptographic Failure', 'Injection (SQL / XSS / Command / SSTI)',
+  'Insecure Design', 'Security Misconfiguration', 'Vulnerable or Outdated Component',
+  'Authentication / Session Failure', 'Software & Data Integrity Failure',
+  'SSRF (Server-Side Request Forgery)', 'Business Logic Flaw',
+  'Information Disclosure / Data Leak', 'IDOR (Insecure Direct Object Reference)',
+  'Open Redirect', 'Clickjacking / UI Redressing', 'CORS Misconfiguration',
+  'Path Traversal / File Inclusion', 'Other',
+] as const;
+
+const ALL_SEVERITIES = ['Critical', 'High', 'Medium', 'Low', 'Info'] as const;
 
 const TARGET_TYPE_LABELS: Record<string, string> = {
   web_app: "Web Application",
@@ -42,6 +58,10 @@ export default function ScopeManagement() {
     description: "",
     targetType: "web_app",
     status: "active",
+    allowedVulnTypes: [] as string[],
+    severityRestriction: [] as string[],
+    notes: "",
+    exclusionPaths: "",
   });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; domain: string } | null>(null);
@@ -158,7 +178,7 @@ export default function ScopeManagement() {
       await fetchScopes();
       setShowAddModal(false);
       setEditingScope(null);
-      setFormData({ domain: "", description: "", targetType: "web_app", status: "active" });
+      setFormData({ domain: "", description: "", targetType: "web_app", status: "active", allowedVulnTypes: [], severityRestriction: [], notes: "", exclusionPaths: "" });
       setToast({
         message: editingScope ? 'Scope updated successfully!' : 'Scope added successfully!',
         type: 'success'
@@ -214,6 +234,10 @@ export default function ScopeManagement() {
       description: scope.description || "",
       targetType: scope.targetType,
       status: scope.status,
+      allowedVulnTypes: scope.allowedVulnTypes ? JSON.parse(scope.allowedVulnTypes) : [],
+      severityRestriction: scope.severityRestriction ? JSON.parse(scope.severityRestriction) : [],
+      notes: scope.notes || "",
+      exclusionPaths: scope.exclusionPaths || "",
     });
     setShowAddModal(true);
   }
@@ -221,7 +245,19 @@ export default function ScopeManagement() {
   function closeModal() {
     setShowAddModal(false);
     setEditingScope(null);
-    setFormData({ domain: "", description: "", targetType: "web_app", status: "active" });
+    setFormData({ domain: "", description: "", targetType: "web_app", status: "active", allowedVulnTypes: [], severityRestriction: [], notes: "", exclusionPaths: "" });
+  }
+
+  function toggleArrayField(field: 'allowedVulnTypes' | 'severityRestriction', value: string) {
+    setFormData(prev => {
+      const current = prev[field];
+      return {
+        ...prev,
+        [field]: current.includes(value)
+          ? current.filter(v => v !== value)
+          : [...current, value],
+      };
+    });
   }
 
   return (
@@ -402,7 +438,7 @@ export default function ScopeManagement() {
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
               {editingScope ? 'Edit Target' : 'Add New Target'}
             </h2>
@@ -465,6 +501,82 @@ export default function ScopeManagement() {
                 </select>
               </div>
 
+              {/* Allowed Vulnerability Types */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Allowed Vulnerability Types
+                  <span className="ml-1 text-xs text-gray-400 font-normal">(leave empty = all allowed)</span>
+                </label>
+                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                  {ALL_VULN_TYPES.map(type => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleArrayField('allowedVulnTypes', type)}
+                      className={`px-2 py-1 text-xs rounded border transition-colors ${
+                        formData.allowedVulnTypes.includes(type)
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Severity Restriction */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Severity Restriction
+                  <span className="ml-1 text-xs text-gray-400 font-normal">(leave empty = all allowed)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_SEVERITIES.map(sev => (
+                    <button
+                      key={sev}
+                      type="button"
+                      onClick={() => toggleArrayField('severityRestriction', sev)}
+                      className={`px-3 py-1 text-xs rounded border transition-colors ${
+                        formData.severityRestriction.includes(sev)
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {sev}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes / Guidelines for Researchers
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Special instructions, known issues, testing environment details..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
+              {/* Exclusion Paths */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Exclusion Paths / Out-of-Scope Rules
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.exclusionPaths}
+                  onChange={(e) => setFormData({ ...formData, exclusionPaths: e.target.value })}
+                  placeholder="/admin/*, /health, third-party login pages..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
@@ -501,11 +613,11 @@ export default function ScopeManagement() {
       {/* Confirm Delete Dialog */}
       {confirmDialog && (
         <ConfirmDialog
-          title="Delete Target"
-          message={`Are you sure you want to delete "${confirmDialog.domain}"? This action cannot be undone.`}
-          confirmText="Delete"
+          title="Archive Target"
+          message={`Are you sure you want to archive "${confirmDialog.domain}"? It will no longer appear in the submission form or scope list. This can be undone by an admin.`}
+          confirmText="Archive"
           cancelText="Cancel"
-          type="danger"
+          type="warning"
           onConfirm={handleDelete}
           onCancel={() => setConfirmDialog(null)}
         />

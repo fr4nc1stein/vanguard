@@ -1,20 +1,25 @@
 /**
  * PATCH /api/admin/scopes/[id] — Update scope
- * DELETE /api/admin/scopes/[id] — Delete scope
+ * DELETE /api/admin/scopes/[id] — Soft-delete scope (sets deleted_at)
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
 import { scopes } from '@/lib/db/schema';
 import { requireRole } from '@/lib/auth';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, isNull, and } from 'drizzle-orm';
+import { VULN_TYPES, SEVERITIES } from '@/lib/validation';
 
 // PATCH - Update scope
 const UpdateScopeSchema = z.object({
-  domain: z.string().min(1).max(200).optional(),
-  description: z.string().max(500).optional().nullable(),
-  targetType: z.enum(['web_app', 'api', 'mobile', 'infrastructure']).optional(),
-  status: z.enum(['active', 'deprecated', 'out_of_scope']).optional(),
+  domain:              z.string().min(1).max(200).optional(),
+  description:         z.string().max(500).optional().nullable(),
+  targetType:          z.enum(['web_app', 'api', 'mobile', 'infrastructure']).optional(),
+  status:              z.enum(['active', 'deprecated', 'out_of_scope']).optional(),
+  allowedVulnTypes:    z.array(z.enum(VULN_TYPES)).optional().nullable(),
+  severityRestriction: z.array(z.enum(SEVERITIES)).optional().nullable(),
+  notes:               z.string().max(2000).optional().nullable(),
+  exclusionPaths:      z.string().max(2000).optional().nullable(),
 });
 
 export async function PATCH(
@@ -22,11 +27,8 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    console.log('[PATCH /api/admin/scopes/[id]] Starting request');
-    const authResult = await requireRole('ADMIN');
-    console.log('[PATCH /api/admin/scopes/[id]] Auth successful:', authResult.userId);
+    await requireRole('ADMIN');
     const { id } = await context.params;
-    console.log('[PATCH /api/admin/scopes/[id]] Scope ID:', id);
 
     let body: unknown;
     try { body = await request.json(); } catch {
@@ -35,7 +37,6 @@ export async function PATCH(
 
     const parsed = UpdateScopeSchema.safeParse(body);
     if (!parsed.success) {
-      console.error('[PATCH /api/admin/scopes/[id]] Validation failed:', parsed.error.flatten());
       return NextResponse.json(
         { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
         { status: 422 },
@@ -43,61 +44,47 @@ export async function PATCH(
     }
 
     const data = parsed.data;
-    console.log('[PATCH /api/admin/scopes/[id]] Parsed data:', JSON.stringify(data));
-    
     const db = getDb(getCfEnv().DB);
 
-    // Check if scope exists
-    const existing = await db.select().from(scopes).where(eq(scopes.id, id)).get();
+    const existing = await db.select().from(scopes)
+      .where(and(eq(scopes.id, id), isNull(scopes.deletedAt)))
+      .get();
     if (!existing) {
-      console.error('[PATCH /api/admin/scopes/[id]] Scope not found:', id);
       return NextResponse.json({ error: 'Scope not found' }, { status: 404 });
     }
-    console.log('[PATCH /api/admin/scopes/[id]] Existing scope:', JSON.stringify(existing));
 
-    // Build update object with proper field mapping
-    const updateData: Partial<typeof scopes.$inferInsert> = {
-      updatedAt: Date.now(),
-    };
-    
-    if (data.domain !== undefined) updateData.domain = data.domain;
+    const updateData: Partial<typeof scopes.$inferInsert> = { updatedAt: Date.now() };
+
+    if (data.domain !== undefined)      updateData.domain      = data.domain;
     if (data.description !== undefined) updateData.description = data.description || null;
-    if (data.targetType !== undefined) updateData.targetType = data.targetType;
-    if (data.status !== undefined) updateData.status = data.status;
+    if (data.targetType !== undefined)  updateData.targetType  = data.targetType;
+    if (data.status !== undefined)      updateData.status      = data.status;
+    if (data.notes !== undefined)       updateData.notes       = data.notes || null;
+    if (data.exclusionPaths !== undefined) updateData.exclusionPaths = data.exclusionPaths || null;
 
-    console.log('[PATCH /api/admin/scopes/[id]] Update data:', JSON.stringify(updateData));
-
-    // Update scope
-    try {
-      await db.update(scopes)
-        .set(updateData)
-        .where(eq(scopes.id, id));
-      console.log('[PATCH /api/admin/scopes/[id]] Update successful');
-    } catch (dbError) {
-      console.error('[PATCH /api/admin/scopes/[id]] Database error:', dbError);
-      console.error('[PATCH /api/admin/scopes/[id]] Database error details:', JSON.stringify(dbError));
-      throw dbError;
+    if (data.allowedVulnTypes !== undefined) {
+      updateData.allowedVulnTypes = data.allowedVulnTypes?.length
+        ? JSON.stringify(data.allowedVulnTypes)
+        : null;
+    }
+    if (data.severityRestriction !== undefined) {
+      updateData.severityRestriction = data.severityRestriction?.length
+        ? JSON.stringify(data.severityRestriction)
+        : null;
     }
 
+    await db.update(scopes).set(updateData).where(eq(scopes.id, id));
     const updated = await db.select().from(scopes).where(eq(scopes.id, id)).get();
 
-    return NextResponse.json({
-      success: true,
-      scope: updated,
-    });
+    return NextResponse.json({ success: true, scope: updated });
   } catch (err) {
     if (err instanceof Response) return err;
-    console.error('[PATCH /api/admin/scopes/[id]] Error:', err);
-    console.error('[PATCH /api/admin/scopes/[id]] Error message:', err instanceof Error ? err.message : String(err));
-    console.error('[PATCH /api/admin/scopes/[id]] Error stack:', err instanceof Error ? err.stack : 'No stack');
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: err instanceof Error ? err.message : String(err)
-    }, { status: 500 });
+    console.error('[PATCH /api/admin/scopes/[id]]', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// DELETE - Delete scope
+// DELETE - Soft-delete scope
 export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
@@ -108,19 +95,18 @@ export async function DELETE(
 
     const db = getDb(getCfEnv().DB);
 
-    // Check if scope exists
-    const existing = await db.select().from(scopes).where(eq(scopes.id, id)).get();
+    const existing = await db.select().from(scopes)
+      .where(and(eq(scopes.id, id), isNull(scopes.deletedAt)))
+      .get();
     if (!existing) {
       return NextResponse.json({ error: 'Scope not found' }, { status: 404 });
     }
 
-    // Delete scope
-    await db.delete(scopes).where(eq(scopes.id, id));
+    await db.update(scopes)
+      .set({ deletedAt: Date.now(), updatedAt: Date.now() })
+      .where(eq(scopes.id, id));
 
-    return NextResponse.json({
-      success: true,
-      message: 'Scope deleted successfully',
-    });
+    return NextResponse.json({ success: true, message: 'Scope archived successfully' });
   } catch (err) {
     if (err instanceof Response) return err;
     console.error('[DELETE /api/admin/scopes/[id]]', err);
