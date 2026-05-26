@@ -1,5 +1,37 @@
 # Changelog
 
+## VAN-13 / VAN-14 Admin Module Completion
+
+**Date:** May 25, 2026
+**Status:** ✅ Deployed to production
+
+---
+
+### 👥 User Management Completion
+
+- Added submission-history links from `/admin/users` to the triage report list filtered by researcher.
+- Added triager activity detail modal backed by audit log entries.
+- Added suspend/unsuspend actions for non-admin users via Clerk Backend API.
+- Added server-side guardrails to prevent admins from suspending themselves or another admin.
+- Added role-change and suspend/unsuspend audit logging.
+- Extended `audit_logs` with `entity_type` and `entity_id` so user-level and system-level events no longer overload `report_id`.
+
+### 🎯 Scope Management Completion
+
+- Added allowed vulnerability types per scope target.
+- Added severity restrictions per scope target.
+- Added researcher-facing notes/guidelines and exclusion paths per scope target.
+- Replaced hard delete with archive/restore using `scopes.deleted_at`.
+- Updated `/submit` to show scope restrictions and filter vulnerability type/severity choices.
+- Enforced scope restrictions server-side in `POST /api/reports`.
+
+### 🗄️ Database Migrations
+
+- `0011_support_user_audit_logs.sql` — supports user/system audit entities with nullable `report_id`.
+- `0012_scope_enhancements.sql` — adds scope restrictions, guidance fields, exclusions, and soft delete.
+
+---
+
 ## Modern Table Features & UI Improvements - v2.4.0
 
 **Date:** May 16, 2026  

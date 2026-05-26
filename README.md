@@ -79,15 +79,19 @@ A modern vulnerability disclosure platform built for security researchers and se
 
 ### 👥 User & Access Management
 - ✅ **Role-Based Access Control** — USER, TRIAGER, ADMIN roles
-- ✅ **User Management** (`/admin/users`) — List, search, sort, and manage user roles
+- ✅ **User Management** (`/admin/users`) — List, search, sort, manage roles, view activity, and link to researcher reports
 - ✅ **Role Promotion** — Promote users to TRIAGER with confirmation dialogs
+- ✅ **Suspend / Unsuspend** — Clerk-backed user access controls for non-admin users
+- ✅ **User Audit Trail** — Role and suspension changes recorded as user-scoped audit events
 - ✅ **Safe ADMIN Management** — ADMIN role changes require manual Clerk access
 - ✅ **Clerk Integration** — Seamless authentication with user profiles
 
 ### 🎯 Scope & Target Management
-- ✅ **Scope Management** (`/admin/scope`) — Add, edit, delete in-scope targets
+- ✅ **Scope Management** (`/admin/scope`) — Add, edit, archive, and restore in-scope targets
 - ✅ **Target Types** — Web App, API, Mobile, Infrastructure
 - ✅ **Status Tracking** — Active, Deprecated, Out of Scope
+- ✅ **Per-Target Rules** — Allowed vulnerability types, severity restrictions, notes, and exclusion paths
+- ✅ **Submission Enforcement** — Scope restrictions are shown in `/submit` and enforced by `POST /api/reports`
 - ✅ **Dynamic Scope** — No hardcoded targets, fully database-driven
 
 ### 📊 Analytics & Reporting
@@ -230,6 +234,8 @@ migrations/
 ├── 0001_schema.sql                   # Base D1 schema: reports + audit_logs
 ├── 003_create_scopes_table.sql       # Dynamic scope targets
 ├── 004_create_comments_table.sql     # Researcher/staff comments
+├── 0011_support_user_audit_logs.sql   # User/system audit entities
+├── 0012_scope_enhancements.sql        # Scope restrictions + archive support
 └── 0005+                             # Hall of Fame, templates, privacy, flags
 ```
 
@@ -257,8 +263,8 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 ### Current Feature Status
 
 **Completed Admin Modules**
-- [x] User Management (`/admin/users`) — Clerk user listing, search, sort, pagination, role updates
-- [x] Scope Management (`/admin/scope`) — Database-backed target CRUD and dynamic submit form targets
+- [x] User Management (`/admin/users`) — Clerk user listing, search, sort, pagination, role updates, report links, activity details, suspend/unsuspend
+- [x] Scope Management (`/admin/scope`) — Database-backed target CRUD, archive/restore, per-target restrictions, and dynamic submit form targets
 - [x] Analytics Dashboard (`/admin/analytics`) — Metrics, distributions, trends, top reporters/targets, CSV export
 - [x] Activity Logs (`/admin/activity-logs`) — Filtering, search, pagination, and CSV export
 - [x] Hall of Fame Management (`/admin/hall-of-fame`) — Leaderboard, points config, visibility controls

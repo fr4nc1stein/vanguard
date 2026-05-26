@@ -72,6 +72,8 @@ vanguard-vdp/
 │   ├── 0001_schema.sql                 # Base D1 schema: reports + audit_logs
 │   ├── 003_create_scopes_table.sql     # Dynamic scope targets
 │   ├── 004_create_comments_table.sql   # Researcher/staff comments
+│   ├── 0011_support_user_audit_logs.sql # User/system audit entities
+│   ├── 0012_scope_enhancements.sql     # Scope restrictions + archive support
 │   └── 0005+                           # Hall of Fame, templates, privacy, flags
 ├── middleware.ts                       # Clerk auth — protects /admin, /dashboard, /submit
 ├── instrumentation.ts                  # setupDevPlatform() for local dev (Node runtime only)
@@ -113,14 +115,35 @@ vanguard-vdp/
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | TEXT PK | UUIDv4 |
-| `report_id` | TEXT FK | → reports.id (CASCADE DELETE) |
+| `report_id` | TEXT FK, nullable | → reports.id for report-scoped logs; null for user/system logs |
+| `entity_type` | TEXT | report / user / system |
+| `entity_id` | TEXT | ID of the audited entity |
 | `actor_id` | TEXT | Clerk user ID |
 | `actor_email` | TEXT | Display only |
 | `action` | TEXT | report_submitted / status_changed / etc. |
 | `old_value` | TEXT | Previous value |
 | `new_value` | TEXT | New value |
 | `ip_hash` | TEXT | SHA-256(IP) |
+| `is_internal` | INTEGER | 0 = public, 1 = staff-only |
 | `timestamp` | INTEGER | Unix ms |
+
+### `scopes`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | TEXT PK | UUIDv4 |
+| `domain` | TEXT | Target domain or URL |
+| `description` | TEXT | Admin-facing target description |
+| `target_type` | TEXT | web_app / api / mobile / infrastructure |
+| `status` | TEXT | active / deprecated / out_of_scope |
+| `allowed_vuln_types` | TEXT | JSON array; null means all vulnerability types are allowed |
+| `severity_restriction` | TEXT | JSON array; null means all severities are allowed |
+| `notes` | TEXT | Researcher-facing target guidance |
+| `exclusion_paths` | TEXT | Researcher-facing out-of-scope paths/rules |
+| `deleted_at` | INTEGER | Null for live targets; Unix ms when archived |
+| `created_by` | TEXT | Clerk user ID |
+| `created_at` | INTEGER | Unix ms |
+| `updated_at` | INTEGER | Unix ms |
 
 ---
 

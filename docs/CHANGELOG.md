@@ -4,6 +4,29 @@ All notable changes to the Vanguard VDP platform.
 
 > **Versioning Strategy:** This project uses semantic versioning with `0.x.y` for development releases and `1.x.y` for production releases. Version `1.0.0` will mark the first production-ready release.
 
+## [v1.0.6] - 2026-05-25
+
+### 👥 User Management Gaps
+- Added researcher report-history links from `/admin/users`
+- Added triager activity detail modal using audit log data
+- Added Clerk-backed suspend and unsuspend actions for non-admin users
+- Added server-side protection against self-suspension and admin suspension
+- Added role-change and user suspension audit entries
+- Extended `audit_logs` with `entity_type` and `entity_id` for user/system audit events
+
+### 🎯 Scope Management Gaps
+- Added per-target allowed vulnerability types and severity restrictions
+- Added per-target researcher notes/guidelines and exclusion paths
+- Added soft-delete archive/restore flow with `deleted_at`
+- Updated `/submit` to display scope restrictions and filter available options
+- Enforced scope restrictions in `POST /api/reports`
+
+### 🗄️ Database Migrations
+- **Migration 0011:** Added user/system audit entity support
+- **Migration 0012:** Added scope restrictions, guidance fields, exclusions, and archive timestamp
+
+---
+
 ## [v1.0.5-hotfix] - 2026-05-22
 
 ### 🔐 Email Privacy & User Display (Critical Hotfix)

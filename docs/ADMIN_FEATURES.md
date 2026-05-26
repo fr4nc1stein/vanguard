@@ -4,7 +4,7 @@
 
 This document tracks the current admin and triage feature surface in the codebase. It is based on the checked-in routes, API handlers, migrations, and database schema.
 
-**Last Updated:** May 24, 2026
+**Last Updated:** May 25, 2026
 **Status:** Active implementation tracker
 **Owner:** Platform Team
 
@@ -15,8 +15,8 @@ This document tracks the current admin and triage feature surface in the codebas
 | Area | Status | Notes |
 |---|---:|---|
 | Triage workflow | Done | Queue, report detail, status changes, severity changes, assignment, comments |
-| User management | Done | Clerk user listing and role updates |
-| Scope management | Done | Database-backed target CRUD and public scope API |
+| User management | Done | Clerk user listing, role updates, report links, activity, suspend/unsuspend |
+| Scope management | Done | Database-backed targets, restrictions, archive/restore, public scope API |
 | Analytics dashboard | Done | Metrics, distributions, trends, top reporters/targets, CSV export |
 | Activity logs | Done | Admin viewer, filters, search, pagination, CSV export |
 | Hall of Fame management | Done | Leaderboard, hacktivity, points config, visibility controls |
@@ -44,13 +44,13 @@ This document tracks the current admin and triage feature surface in the codebas
 - Role promotion/demotion through Clerk public metadata
 - Confirmation dialog and toast feedback for role changes
 - Safer admin handling: admin role changes are intentionally constrained through Clerk/manual workflows
+- User submission history links to triage filtered by researcher
+- Triager activity detail modal
+- Suspend/unsuspend user actions for non-admin users
+- Audit-log entries for role changes and user suspension changes
 
 **Still Pending:**
-- User submission history from the user management page
-- Triager activity detail view
-- Suspend/unsuspend user actions
 - Full user deletion UI
-- Audit-log entries for all role changes
 
 ---
 
@@ -63,18 +63,19 @@ This document tracks the current admin and triage feature surface in the codebas
 - `/api/admin/scopes`
 - `/api/admin/scopes/[id]`
 - `/api/scopes` for public/submit-form scope loading
-- `scopes` table migration
-- Create, edit, and delete targets
+- `scopes` table migrations
+- Create, edit, archive, and restore targets
 - Target type support: `web_app`, `api`, `mobile`, `infrastructure`
 - Scope status support: `active`, `deprecated`, `out_of_scope`
-- Search, sort, pagination, confirmations, and toast feedback
-- Submission form uses database-backed scope targets
-
-**Still Pending:**
 - Allowed vulnerability types per target
 - Severity restrictions per target
 - Scope notes/guidelines and exclusions
-- Soft-delete/archive flow instead of hard delete
+- Search, sort, pagination, confirmations, and toast feedback
+- Submission form uses database-backed scope targets and displays target-specific restrictions
+- Report submission API enforces active, non-archived targets and target-specific restrictions
+
+**Still Pending:**
+- Bulk scope import/export
 
 ---
 
