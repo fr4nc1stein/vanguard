@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -17,6 +17,7 @@ interface Scope {
   severityRestriction: string | null; // JSON array string
   notes: string | null;
   exclusionPaths: string | null;
+  deletedAt: number | null;
   createdBy: string;
   createdAt: number;
   updatedAt: number;
@@ -45,6 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-100 text-green-700 border-green-200",
   deprecated: "bg-yellow-100 text-yellow-700 border-yellow-200",
   out_of_scope: "bg-red-100 text-red-700 border-red-200",
+  archived: "bg-gray-100 text-gray-700 border-gray-200",
 };
 
 export default function ScopeManagement() {
@@ -65,15 +67,35 @@ export default function ScopeManagement() {
   });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ id: string; domain: string } | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<keyof Scope | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  const fetchScopes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = showArchived ? '?include_archived=true' : '';
+      const res = await fetch(`/api/admin/scopes${params}`);
+      if (!res.ok) throw new Error('Failed to fetch scopes');
+      const data = await res.json();
+      setScopes(data.scopes);
+    } catch (err) {
+      console.error('[fetchScopes]', err);
+      setToast({
+        message: 'Failed to load scopes',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [showArchived]);
+
   useEffect(() => {
     fetchScopes();
-  }, []);
+  }, [fetchScopes]);
 
   // Search and filter logic
   const filteredScopes = scopes.filter(scope => {
@@ -83,7 +105,8 @@ export default function ScopeManagement() {
       scope.domain.toLowerCase().includes(query) ||
       (scope.description && scope.description.toLowerCase().includes(query)) ||
       scope.targetType.toLowerCase().includes(query) ||
-      scope.status.toLowerCase().includes(query)
+      scope.status.toLowerCase().includes(query) ||
+      (scope.deletedAt !== null && 'archived'.includes(query))
     );
   });
 
@@ -91,8 +114,8 @@ export default function ScopeManagement() {
   const sortedScopes = [...filteredScopes].sort((a, b) => {
     if (!sortField) return 0;
     
-    let aVal: any = a[sortField];
-    let bVal: any = b[sortField];
+    let aVal: string | number | null = a[sortField];
+    let bVal: string | number | null = b[sortField];
     
     // Handle null values
     if (aVal === null || aVal === undefined) return 1;
@@ -137,24 +160,6 @@ export default function ScopeManagement() {
     }
     return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
   };
-
-  async function fetchScopes() {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/scopes');
-      if (!res.ok) throw new Error('Failed to fetch scopes');
-      const data = await res.json();
-      setScopes(data.scopes);
-    } catch (err) {
-      console.error('[fetchScopes]', err);
-      setToast({
-        message: 'Failed to load scopes',
-        type: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -215,13 +220,40 @@ export default function ScopeManagement() {
 
       await fetchScopes();
       setToast({
-        message: 'Scope deleted successfully!',
+        message: 'Scope archived successfully!',
         type: 'success'
       });
     } catch (err: unknown) {
       console.error('[handleDelete]', err);
       setToast({
         message: err instanceof Error ? err.message : 'Failed to delete scope',
+        type: 'error'
+      });
+    }
+  }
+
+  async function restoreScope(id: string) {
+    try {
+      const res = await fetch(`/api/admin/scopes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restore: true }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to restore scope');
+      }
+
+      await fetchScopes();
+      setToast({
+        message: 'Scope restored successfully!',
+        type: 'success'
+      });
+    } catch (err: unknown) {
+      console.error('[restoreScope]', err);
+      setToast({
+        message: err instanceof Error ? err.message : 'Failed to restore scope',
         type: 'error'
       });
     }
@@ -278,6 +310,16 @@ export default function ScopeManagement() {
             >
               + Add Target
             </button>
+            <button
+              onClick={() => setShowArchived((value) => !value)}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg border transition-colors ${
+                showArchived
+                  ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {showArchived ? 'Hide Archived' : 'Show Archived'}
+            </button>
             <Link
               href="/admin"
               className="px-4 py-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
@@ -316,15 +358,19 @@ export default function ScopeManagement() {
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Active</p>
-            <p className="text-2xl font-bold text-green-700">{scopes.filter(s => s.status === 'active').length}</p>
+            <p className="text-2xl font-bold text-green-700">{scopes.filter(s => s.status === 'active' && s.deletedAt === null).length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Deprecated</p>
-            <p className="text-2xl font-bold text-yellow-700">{scopes.filter(s => s.status === 'deprecated').length}</p>
+            <p className="text-2xl font-bold text-yellow-700">{scopes.filter(s => s.status === 'deprecated' && s.deletedAt === null).length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Out of Scope</p>
-            <p className="text-2xl font-bold text-red-700">{scopes.filter(s => s.status === 'out_of_scope').length}</p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">{showArchived ? 'Archived' : 'Out of Scope'}</p>
+            <p className={`text-2xl font-bold ${showArchived ? 'text-gray-700' : 'text-red-700'}`}>
+              {showArchived
+                ? scopes.filter(s => s.deletedAt !== null).length
+                : scopes.filter(s => s.status === 'out_of_scope' && s.deletedAt === null).length}
+            </p>
           </div>
         </div>
 
@@ -373,7 +419,7 @@ export default function ScopeManagement() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {paginatedScopes.map((scope) => (
-                    <tr key={scope.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={scope.id} className={`hover:bg-gray-50 transition-colors ${scope.deletedAt !== null ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
                         <p className="font-mono text-sm text-gray-900">{scope.domain}</p>
                       </td>
@@ -386,8 +432,8 @@ export default function ScopeManagement() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold capitalize ${STATUS_COLORS[scope.status] || STATUS_COLORS.active}`}>
-                          {scope.status.replace('_', ' ')}
+                        <span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold capitalize ${scope.deletedAt !== null ? STATUS_COLORS.archived : STATUS_COLORS[scope.status] || STATUS_COLORS.active}`}>
+                          {scope.deletedAt !== null ? 'archived' : scope.status.replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-500">
@@ -395,18 +441,29 @@ export default function ScopeManagement() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => openEditModal(scope)}
-                            className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => confirmDelete(scope.id, scope.domain)}
-                            className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            Delete
-                          </button>
+                          {scope.deletedAt === null ? (
+                            <>
+                              <button
+                                onClick={() => openEditModal(scope)}
+                                className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => confirmDelete(scope.id, scope.domain)}
+                                className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                Archive
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => restoreScope(scope.id)}
+                              className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
+                            >
+                              Restore
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

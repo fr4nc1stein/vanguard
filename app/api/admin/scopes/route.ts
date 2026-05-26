@@ -11,16 +11,16 @@ import { eq, isNull } from 'drizzle-orm';
 import { VULN_TYPES, SEVERITIES } from '@/lib/validation';
 
 // GET - List all non-deleted scopes
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     await requireRole('ADMIN');
 
+    const includeArchived = request.nextUrl.searchParams.get('include_archived') === 'true';
     const db = getDb(getCfEnv().DB);
-    const allScopes = await db
-      .select()
-      .from(scopes)
-      .where(isNull(scopes.deletedAt))
-      .all();
+    const query = db.select().from(scopes);
+    const allScopes = includeArchived
+      ? await query.all()
+      : await query.where(isNull(scopes.deletedAt)).all();
 
     return NextResponse.json({
       scopes: allScopes,

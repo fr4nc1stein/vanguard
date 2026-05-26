@@ -20,6 +20,7 @@ const UpdateScopeSchema = z.object({
   severityRestriction: z.array(z.enum(SEVERITIES)).optional().nullable(),
   notes:               z.string().max(2000).optional().nullable(),
   exclusionPaths:      z.string().max(2000).optional().nullable(),
+  restore:             z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -47,13 +48,14 @@ export async function PATCH(
     const db = getDb(getCfEnv().DB);
 
     const existing = await db.select().from(scopes)
-      .where(and(eq(scopes.id, id), isNull(scopes.deletedAt)))
+      .where(data.restore ? eq(scopes.id, id) : and(eq(scopes.id, id), isNull(scopes.deletedAt)))
       .get();
     if (!existing) {
       return NextResponse.json({ error: 'Scope not found' }, { status: 404 });
     }
 
     const updateData: Partial<typeof scopes.$inferInsert> = { updatedAt: Date.now() };
+    if (data.restore) updateData.deletedAt = null;
 
     if (data.domain !== undefined)      updateData.domain      = data.domain;
     if (data.description !== undefined) updateData.description = data.description || null;
