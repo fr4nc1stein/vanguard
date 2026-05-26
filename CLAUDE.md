@@ -60,6 +60,35 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Workflow Orchestration
+
+**Plan first, then execute with subagents.**
+
+- Enter Plan Mode for complex or multi-step tasks before writing any code.
+- Use subagents to isolate context — one task per subagent.
+- Implement self-improvement loops: document what you learn, update guidelines.
+- Verify work before declaring it complete.
+- Balance elegance with practicality — don't over-engineer for aesthetics.
+- Autonomously resolve bugs rather than stopping to ask for every small blocker.
+
+## 6. Task Management
+
+**Track progress explicitly.**
+
+- Plan tasks in `tasks/todo.md` before starting.
+- Verify the plan with the user before executing.
+- Track progress step by step as you go.
+- Explain changes as you make them.
+- Document results and capture lessons learned after completing a task.
+
+## 7. Minimal Impact
+
+**Root-cause analysis over surface patches.**
+
+- Prefer the simplest solution that addresses the actual root cause.
+- Don't patch symptoms — dig until you understand why something broke.
+- Touch only what's necessary to fix the problem (see also: Surgical Changes).
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
