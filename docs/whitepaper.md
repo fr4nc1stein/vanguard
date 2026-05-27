@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Date:** May 2026  
-**Author:** Al Francis  
+**Author:** Francis Al Victoriano  
 **Repository:** https://github.com/fr4nc1stein/vanguard  
 **Live Platform:** https://vanguard.laet4x.com
 
