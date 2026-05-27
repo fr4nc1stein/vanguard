@@ -14,6 +14,7 @@ import { logAudit } from '@/lib/audit';
 const CreateCommentSchema = z.object({
   message: z.string().min(1).max(5000),
   isInternal: z.boolean().optional(),
+  templateId: z.string().min(1).max(100).optional(),
 });
 
 export async function GET(
@@ -76,7 +77,8 @@ export async function POST(
     }
 
     const { id: reportId } = await params;
-    const db = getDb(getCfEnv().DB);
+    const env = getCfEnv();
+    const db = getDb(env.DB);
 
     // Verify user has access to this report
     const report = await db.select().from(reports).where(eq(reports.id, reportId)).get();
@@ -133,6 +135,24 @@ export async function POST(
       .from(comments)
       .where(eq(comments.id, commentId))
       .get();
+
+    if (data.templateId && isStaff) {
+      const template = await env.DB
+        .prepare('SELECT name FROM response_templates WHERE id = ? AND is_active = 1')
+        .bind(data.templateId)
+        .first<{ name?: string }>();
+
+      if (template) {
+        await logAudit({
+          db,
+          reportId,
+          actorId: userId,
+          action: 'template_used',
+          oldValue: data.templateId,
+          newValue: template.name || data.templateId,
+        });
+      }
+    }
 
     await logAudit({
       db,

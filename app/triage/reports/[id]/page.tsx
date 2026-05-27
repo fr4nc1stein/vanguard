@@ -288,6 +288,7 @@ export default function AdminReportDetail() {
         body: JSON.stringify({ 
           message: newComment,
           isInternal: isInternalComment,
+          templateId: selectedTemplate || undefined,
         }),
       });
 

@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 
 const isTriageRoute    = createRouteMatcher(['/triage(.*)']);
 const isAdminPageRoute = createRouteMatcher(['/admin(.*)']); // Page routes only, not API
+const isActivityLogsPageRoute = createRouteMatcher(['/admin/activity-logs(.*)']);
 const isDashboardRoute = createRouteMatcher(['/dashboard(.*)']);
 const isSubmitRoute    = createRouteMatcher(['/submit(.*)']);
 
@@ -25,12 +26,13 @@ export default clerkMiddleware(async (auth, request) => {
     }
   }
   if (isAdminPageRoute(request) && !isApiRoute) {
-    // Admin page route - ADMIN only
+    // Admin page route - ADMIN only, except triagers can view their own activity logs.
     const { userId } = await auth.protect();
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
     const role = (user.publicMetadata as { role?: string })?.role;
-    if (role !== 'ADMIN') {
+    const canViewScopedActivityLogs = isActivityLogsPageRoute(request) && role === 'TRIAGER';
+    if (role !== 'ADMIN' && !canViewScopedActivityLogs) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
