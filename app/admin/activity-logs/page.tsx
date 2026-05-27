@@ -29,6 +29,14 @@ const ACTION_TYPES = [
   'poc_uploaded',
   'report_viewed',
   'report_decrypted',
+  'comment_posted',
+  'scope_created',
+  'scope_updated',
+  'scope_archived',
+  'template_used',
+  'role_changed',
+  'user_suspended',
+  'user_unsuspended',
 ];
 
 const ACTION_ICONS: Record<string, string> = {
@@ -39,6 +47,14 @@ const ACTION_ICONS: Record<string, string> = {
   poc_uploaded: '📎',
   report_viewed: '👁️',
   report_decrypted: '🔓',
+  comment_posted: '💬',
+  scope_created: '🎯',
+  scope_updated: '✏️',
+  scope_archived: '📦',
+  template_used: '📄',
+  role_changed: '🎭',
+  user_suspended: '🚫',
+  user_unsuspended: '✅',
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -49,12 +65,21 @@ const ACTION_COLORS: Record<string, string> = {
   poc_uploaded: 'bg-indigo-100 text-indigo-700',
   report_viewed: 'bg-gray-100 text-gray-700',
   report_decrypted: 'bg-yellow-100 text-yellow-700',
+  comment_posted: 'bg-sky-100 text-sky-700',
+  scope_created: 'bg-teal-100 text-teal-700',
+  scope_updated: 'bg-amber-100 text-amber-700',
+  scope_archived: 'bg-stone-100 text-stone-600',
+  template_used: 'bg-cyan-100 text-cyan-700',
+  role_changed: 'bg-violet-100 text-violet-700',
+  user_suspended: 'bg-red-100 text-red-700',
+  user_unsuspended: 'bg-emerald-100 text-emerald-700',
 };
 
 export default function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [scoped, setScoped] = useState(false);
   
   // Filters
   const [actionFilter, setActionFilter] = useState<string>('');
@@ -99,6 +124,7 @@ export default function ActivityLogsPage() {
       setLogs(data.logs || []);
       setTotalPages(data.pagination.totalPages);
       setTotal(data.pagination.total);
+      setScoped(data.scoped || false);
     } catch (error) {
       console.error('[fetchLogs]', error);
       setToast({ message: 'Failed to load activity logs', type: 'error' });
@@ -190,6 +216,14 @@ export default function ActivityLogsPage() {
             {exporting ? '⏳ Exporting...' : '📥 Export CSV'}
           </button>
         </div>
+
+        {/* Scoped notice for triagers */}
+        {scoped && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3 text-sm text-blue-700">
+            <span>🔍</span>
+            <span>Showing your own actions only. Admins can view all platform activity.</span>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">

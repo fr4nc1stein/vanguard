@@ -9,6 +9,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDisplayName } from '@/lib/redact';
+import { logAudit } from '@/lib/audit';
 
 const CreateCommentSchema = z.object({
   message: z.string().min(1).max(5000),
@@ -132,6 +133,14 @@ export async function POST(
       .from(comments)
       .where(eq(comments.id, commentId))
       .get();
+
+    await logAudit({
+      db,
+      reportId,
+      actorId: userId,
+      action: 'comment_posted',
+      newValue: isInternal ? 'internal' : 'public',
+    });
 
     return NextResponse.json({ success: true, comment: newComment }, { status: 201 });
   } catch (err) {

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
 import { scopes } from '@/lib/db/schema';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import { z } from 'zod';
 import { eq, isNull } from 'drizzle-orm';
 import { VULN_TYPES, SEVERITIES } from '@/lib/validation';
@@ -86,6 +87,15 @@ export async function POST(request: NextRequest) {
     });
 
     const newScope = await db.select().from(scopes).where(eq(scopes.id, id)).get();
+
+    await logAudit({
+      db,
+      entityType: 'system',
+      entityId: id,
+      actorId: userId,
+      action: 'scope_created',
+      newValue: data.domain,
+    });
 
     return NextResponse.json({ success: true, scope: newScope }, { status: 201 });
   } catch (err) {

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
 import { scopes } from '@/lib/db/schema';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import { z } from 'zod';
 import { eq, isNull, and } from 'drizzle-orm';
 import { VULN_TYPES, SEVERITIES } from '@/lib/validation';
@@ -28,7 +29,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole('ADMIN');
+    const { userId } = await requireRole('ADMIN');
     const { id } = await context.params;
 
     let body: unknown;
@@ -78,6 +79,16 @@ export async function PATCH(
     await db.update(scopes).set(updateData).where(eq(scopes.id, id));
     const updated = await db.select().from(scopes).where(eq(scopes.id, id)).get();
 
+    await logAudit({
+      db,
+      entityType: 'system',
+      entityId: id,
+      actorId: userId,
+      action: data.restore ? 'scope_updated' : 'scope_updated',
+      oldValue: existing.domain,
+      newValue: data.domain ?? existing.domain,
+    });
+
     return NextResponse.json({ success: true, scope: updated });
   } catch (err) {
     if (err instanceof Response) return err;
@@ -92,7 +103,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole('ADMIN');
+    const { userId } = await requireRole('ADMIN');
     const { id } = await context.params;
 
     const db = getDb(getCfEnv().DB);
@@ -107,6 +118,15 @@ export async function DELETE(
     await db.update(scopes)
       .set({ deletedAt: Date.now(), updatedAt: Date.now() })
       .where(eq(scopes.id, id));
+
+    await logAudit({
+      db,
+      entityType: 'system',
+      entityId: id,
+      actorId: userId,
+      action: 'scope_archived',
+      oldValue: existing.domain,
+    });
 
     return NextResponse.json({ success: true, message: 'Scope archived successfully' });
   } catch (err) {

@@ -8,11 +8,11 @@ import { requireRole } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole('ADMIN');
+    const { userId, role } = await requireRole('TRIAGER');
 
     const sp = request.nextUrl.searchParams;
     const action = sp.get('action');
-    const actorId = sp.get('actor_id');
+    const actorId = role === 'ADMIN' ? sp.get('actor_id') : userId;
     const reportId = sp.get('report_id');
     const startDate = sp.get('start_date');
     const endDate = sp.get('end_date');
