@@ -43,6 +43,7 @@ export async function GET(_request: NextRequest) {
           researcherName,
           avatarUrl,
           title: entry.title,
+          publicTitle: entry.publicTitle ?? null,
           severity: entry.severity,
           pointsAwarded: entry.pointsAwarded,
           acceptedAt: entry.acceptedAt,

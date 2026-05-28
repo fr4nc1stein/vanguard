@@ -9,18 +9,23 @@ import { desc } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 import { getDisplayName } from '@/lib/redact';
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     await requireRole('ADMIN');
 
     const db = getDb(getCfEnv().DB);
-    
-    const leaders = await db
+    const limitParam = request.nextUrl.searchParams.get('limit');
+    const shouldExportAll = limitParam === 'all';
+    const limit = Math.min(Math.max(Number(limitParam) || 100, 1), 1000);
+
+    const query = db
       .select()
       .from(researcherStats)
-      .orderBy(desc(researcherStats.totalPoints))
-      .limit(100)
-      .all();
+      .orderBy(desc(researcherStats.totalPoints));
+
+    const leaders = shouldExportAll
+      ? await query.all()
+      : await query.limit(limit).all();
 
     // Fetch Clerk data for all researchers
     const clerk = await clerkClient();

@@ -24,8 +24,10 @@ export async function GET(_request: NextRequest) {
         researcherId: hacktivity.researcherId,
         action: hacktivity.action,
         title: hacktivity.title,
+        publicTitle: hallOfFame.publicTitle,
+        hallOfFameTitle: hallOfFame.title,
         severity: hacktivity.severity,
-        points: hacktivity.points,
+        points: hallOfFame.pointsAwarded,
         titleDisclosed: hacktivity.titleDisclosed,
         timestamp: hacktivity.timestamp,
       })
@@ -55,7 +57,7 @@ export async function GET(_request: NextRequest) {
         // SECURITY: Only show title if explicitly disclosed by researcher
         // titleDisclosed: 1 = visible, 0 = redacted
         const displayTitle = activity.titleDisclosed === 1
-          ? activity.title
+          ? activity.publicTitle ?? activity.hallOfFameTitle
           : '[Undisclosed]';
 
         return {

@@ -3,8 +3,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
-import { researcherStats, hallOfFame } from '@/lib/db/schema';
-import { gte } from 'drizzle-orm';
+import { hallOfFame } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 import { getDisplayName } from '@/lib/redact';
 
@@ -12,25 +12,23 @@ export async function GET(_request: NextRequest) {
   try {
     const db = getDb(getCfEnv().DB);
 
-    // Get all stats
-    const allStats = await db.select().from(researcherStats).all();
-    const allAwards = await db.select().from(hallOfFame).all();
+    const publicAwards = await db
+      .select()
+      .from(hallOfFame)
+      .where(eq(hallOfFame.isPublic, 1))
+      .all();
 
     // Calculate totals
-    const totalPointsAwarded = allStats.reduce((sum, stat) => sum + stat.totalPoints, 0);
-    const totalResearchers = allStats.length;
-    const totalReportsAccepted = allAwards.length;
+    const totalPointsAwarded = publicAwards.reduce((sum, award) => sum + award.pointsAwarded, 0);
+    const totalResearchers = new Set(publicAwards.map((award) => award.researcherId)).size;
+    const totalReportsAccepted = publicAwards.length;
     const averagePointsPerReport = totalReportsAccepted > 0 
       ? Math.round(totalPointsAwarded / totalReportsAccepted)
       : 0;
 
     // Get top researcher this month
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    const recentAwards = await db
-      .select()
-      .from(hallOfFame)
-      .where(gte(hallOfFame.acceptedAt, thirtyDaysAgo))
-      .all();
+    const recentAwards = publicAwards.filter((award) => award.acceptedAt >= thirtyDaysAgo);
 
     // Count points per researcher this month
     const monthlyPoints: Record<string, { points: number }> = {};

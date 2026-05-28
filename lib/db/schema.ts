@@ -100,6 +100,7 @@ export const hallOfFame = sqliteTable('hall_of_fame', {
   reportId:       text('report_id').notNull().unique(),
   researcherId:   text('researcher_id').notNull(), // Clerk user ID
   title:          text('title').notNull(),
+  publicTitle:    text('public_title'),             // Admin override; null = use auto-generated title
   severity:       text('severity').notNull(),
   pointsAwarded:  integer('points_awarded').notNull(),
   acceptedAt:     integer('accepted_at').notNull(),
