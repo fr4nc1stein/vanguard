@@ -19,7 +19,12 @@ export type AuditAction =
   | 'report_decrypted'
   | 'role_changed'
   | 'user_suspended'
-  | 'user_unsuspended';
+  | 'user_unsuspended'
+  | 'comment_posted'
+  | 'scope_created'
+  | 'scope_updated'
+  | 'scope_archived'
+  | 'template_used';
 
 // Internal actions that should only be visible to triagers/admins
 const INTERNAL_ACTIONS: AuditAction[] = [

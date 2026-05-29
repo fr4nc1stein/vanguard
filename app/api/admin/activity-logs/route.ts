@@ -10,11 +10,13 @@ import { getDisplayName } from '@/lib/redact';
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole('ADMIN'); // Only admins can view activity logs
+    // TRIAGERs can view their own logs; ADMINs can view all logs
+    const { userId, role } = await requireRole('TRIAGER');
 
     const sp = request.nextUrl.searchParams;
     const action = sp.get('action');
-    const actorId = sp.get('actor_id');
+    // TRIAGERs are automatically scoped to their own actor_id
+    const actorId = role === 'ADMIN' ? sp.get('actor_id') : userId;
     const reportId = sp.get('report_id');
     const startDate = sp.get('start_date');
     const endDate = sp.get('end_date');
@@ -100,6 +102,7 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit),
       },
+      scoped: role !== 'ADMIN',
     });
   } catch (err) {
     if (err instanceof Response) return err;
