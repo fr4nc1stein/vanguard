@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,6 +30,7 @@ interface HallOfFameEntry {
   researcherName: string;
   avatarUrl: string | null;
   title: string;
+  publicTitle: string | null;
   severity: string;
   pointsAwarded: number;
   acceptedAt: number;
@@ -58,6 +59,14 @@ interface Toast {
   type: 'success' | 'error';
 }
 
+interface PointsModal {
+  id: string;
+  researcherName: string;
+  currentPoints: number;
+  newPoints: string;
+  reason: string;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminHallOfFame() {
@@ -75,6 +84,15 @@ export default function AdminHallOfFame() {
   const [showConfigEdit, setShowConfigEdit] = useState(false);
   const [editingConfig, setEditingConfig] = useState<{ severity: string; points: number } | null>(null);
 
+  // New state for VAN-17 features
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(new Set());
+  const [editingTitle, setEditingTitle] = useState<{ id: string; value: string } | null>(null);
+  const [pointsModal, setPointsModal] = useState<PointsModal | null>(null);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -85,6 +103,11 @@ export default function AdminHallOfFame() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  // Clear selection when page or search changes
+  useEffect(() => {
+    setSelectedEntryIds(new Set());
+  }, [entriesPage, entriesSearchQuery]);
 
   async function fetchData() {
     try {
@@ -116,7 +139,7 @@ export default function AdminHallOfFame() {
       }
     } catch (error) {
       console.error('[Admin Hall of Fame] Error fetching data:', error);
-      setToast({ message: 'Failed to load data', type: 'error' });
+      showToast('Failed to load data', 'error');
     } finally {
       setLoading(false);
     }
@@ -139,13 +162,10 @@ export default function AdminHallOfFame() {
 
       await fetchData();
       setEditingConfig(null);
-      setToast({ message: 'Points configuration updated successfully!', type: 'success' });
+      showToast('Points configuration updated successfully!', 'success');
     } catch (error) {
       console.error('[handleUpdatePoints] Error:', error);
-      setToast({
-        message: error instanceof Error ? error.message : 'Failed to update points',
-        type: 'error',
-      });
+      showToast(error instanceof Error ? error.message : 'Failed to update points', 'error');
     }
   }
 
@@ -154,9 +174,7 @@ export default function AdminHallOfFame() {
       const res = await fetch(`/api/admin/hall-of-fame/${entryId}/visibility`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isPublic: !currentVisibility,
-        }),
+        body: JSON.stringify({ isPublic: !currentVisibility }),
       });
 
       if (!res.ok) {
@@ -165,18 +183,180 @@ export default function AdminHallOfFame() {
       }
 
       await fetchData();
-      setToast({
-        message: currentVisibility ? 'Entry hidden from public' : 'Entry made public',
-        type: 'success',
-      });
+      showToast(currentVisibility ? 'Entry hidden from public' : 'Entry made public', 'success');
     } catch (error) {
       console.error('[handleToggleVisibility] Error:', error);
-      setToast({
-        message: error instanceof Error ? error.message : 'Failed to toggle visibility',
-        type: 'error',
+      showToast(error instanceof Error ? error.message : 'Failed to toggle visibility', 'error');
+    }
+  }
+
+  // ── Title editing ─────────────────────────────────────────────────────────
+
+  async function handleSaveTitle(entryId: string) {
+    if (!editingTitle) return;
+    const value = editingTitle.value.trim();
+
+    try {
+      const res = await fetch(`/api/admin/hall-of-fame/${entryId}/title`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicTitle: value || null }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update title');
+      }
+
+      await fetchData();
+      setEditingTitle(null);
+      showToast('Title updated', 'success');
+    } catch (error) {
+      console.error('[handleSaveTitle] Error:', error);
+      showToast(error instanceof Error ? error.message : 'Failed to update title', 'error');
+    }
+  }
+
+  // ── Points adjustment ────────────────────────────────────────────────────
+
+  async function handleAdjustPoints() {
+    if (!pointsModal) return;
+    const newPoints = parseInt(pointsModal.newPoints, 10);
+
+    if (isNaN(newPoints) || newPoints < 0 || newPoints > 10000) {
+      showToast('Points must be between 0 and 10,000', 'error');
+      return;
+    }
+    if (!pointsModal.reason.trim()) {
+      showToast('A reason is required', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/hall-of-fame/${pointsModal.id}/points`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points: newPoints, reason: pointsModal.reason.trim() }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to adjust points');
+      }
+
+      await fetchData();
+      setPointsModal(null);
+      showToast('Points adjusted successfully', 'success');
+    } catch (error) {
+      console.error('[handleAdjustPoints] Error:', error);
+      showToast(error instanceof Error ? error.message : 'Failed to adjust points', 'error');
+    }
+  }
+
+  // ── Bulk visibility ──────────────────────────────────────────────────────
+
+  async function handleBulkVisibility(isPublic: boolean) {
+    if (selectedEntryIds.size === 0) return;
+
+    try {
+      const res = await fetch('/api/admin/hall-of-fame/bulk-visibility', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedEntryIds), isPublic }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update visibility');
+      }
+
+      const data = await res.json();
+      await fetchData();
+      setSelectedEntryIds(new Set());
+      showToast(`${data.updated} ${data.updated === 1 ? 'entry' : 'entries'} ${isPublic ? 'made public' : 'hidden'}`, 'success');
+    } catch (error) {
+      console.error('[handleBulkVisibility] Error:', error);
+      showToast(error instanceof Error ? error.message : 'Failed to update visibility', 'error');
+    }
+  }
+
+  // ── Leaderboard CSV export ───────────────────────────────────────────────
+
+  async function handleExportLeaderboardCSV() {
+    let exportLeaderboard = leaderboard;
+
+    try {
+      const res = await fetch('/api/admin/hall-of-fame/leaderboard?limit=all');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to export leaderboard');
+      }
+      const data = await res.json();
+      exportLeaderboard = data.leaderboard || [];
+    } catch (error) {
+      console.error('[handleExportLeaderboardCSV] Error:', error);
+      showToast(error instanceof Error ? error.message : 'Failed to export leaderboard', 'error');
+      return;
+    }
+
+    const headers = ['Rank', 'Researcher', 'Points', 'Critical', 'High', 'Medium', 'Low', 'Accepted Reports', 'First Report', 'Last Report'];
+    const rows = exportLeaderboard.map((e) => [
+      e.rank,
+      e.researcherName,
+      e.totalPoints,
+      e.criticalCount,
+      e.highCount,
+      e.mediumCount,
+      e.lowCount,
+      e.acceptedReports,
+      e.firstReportAt ? new Date(e.firstReportAt).toISOString().split('T')[0] : '',
+      e.lastReportAt  ? new Date(e.lastReportAt).toISOString().split('T')[0]  : '',
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `leaderboard-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Leaderboard CSV exported', 'success');
+  }
+
+  // ── Selection helpers ────────────────────────────────────────────────────
+
+  function handleToggleSelect(id: string) {
+    setSelectedEntryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleSelectAllOnPage() {
+    const pageIds = paginatedEntries.map((e) => e.id);
+    const allSelected = pageIds.every((id) => selectedEntryIds.has(id));
+    if (allSelected) {
+      setSelectedEntryIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedEntryIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.add(id));
+        return next;
       });
     }
   }
+
+  // ── Derived data ─────────────────────────────────────────────────────────
 
   const filteredLeaderboard = leaderboard.filter((entry) =>
     entry.researcherName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -184,7 +364,7 @@ export default function AdminHallOfFame() {
 
   const filteredEntries = entries.filter((entry) =>
     entry.researcherName.toLowerCase().includes(entriesSearchQuery.toLowerCase()) ||
-    entry.title.toLowerCase().includes(entriesSearchQuery.toLowerCase())
+    (entry.publicTitle ?? entry.title).toLowerCase().includes(entriesSearchQuery.toLowerCase())
   );
 
   const totalEntriesPages = Math.ceil(filteredEntries.length / entriesPerPage);
@@ -192,6 +372,9 @@ export default function AdminHallOfFame() {
     (entriesPage - 1) * entriesPerPage,
     entriesPage * entriesPerPage
   );
+
+  const allPageSelected = paginatedEntries.length > 0 && paginatedEntries.every((e) => selectedEntryIds.has(e.id));
+  const somePageSelected = paginatedEntries.some((e) => selectedEntryIds.has(e.id));
 
   const displayStats = stats || {
     totalPointsAwarded: leaderboard.reduce((sum, r) => sum + r.totalPoints, 0),
@@ -212,6 +395,57 @@ export default function AdminHallOfFame() {
             } text-white font-medium`}
           >
             {toast.message}
+          </div>
+        </div>
+      )}
+
+      {/* Points adjustment modal */}
+      {pointsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Adjust Points</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Adjusting points for <span className="font-medium text-gray-700">{pointsModal.researcherName}</span>.
+              Current: <span className="font-bold">{pointsModal.currentPoints} pts</span>
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">New Points</label>
+              <input
+                type="number"
+                min="0"
+                max="10000"
+                value={pointsModal.newPoints}
+                onChange={(e) => setPointsModal({ ...pointsModal, newPoints: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+            </div>
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Reason <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Correction after duplicate detected; Reward for exceptional impact"
+                value={pointsModal.reason}
+                onChange={(e) => setPointsModal({ ...pointsModal, reason: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setPointsModal(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAdjustPoints}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Save Adjustment
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -368,15 +602,44 @@ export default function AdminHallOfFame() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">👁️ Manage Entry Visibility</h2>
+                <h2 className="text-lg font-semibold text-gray-900">👁️ Manage Entries</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Toggle visibility of individual hall of fame entries. Hidden entries won't appear on the public page.
+                  Toggle visibility, override public titles, and adjust points for individual entries.
                 </p>
               </div>
               <div className="text-sm text-gray-500">
                 {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
               </div>
             </div>
+
+            {/* Bulk action toolbar */}
+            {selectedEntryIds.size > 0 && (
+              <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <span className="text-sm font-medium text-blue-800">
+                  {selectedEntryIds.size} selected
+                </span>
+                <div className="flex gap-2 ml-auto">
+                  <button
+                    onClick={() => handleBulkVisibility(true)}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700"
+                  >
+                    Make Public
+                  </button>
+                  <button
+                    onClick={() => handleBulkVisibility(false)}
+                    className="px-3 py-1.5 bg-gray-600 text-white rounded-lg text-xs font-semibold hover:bg-gray-700"
+                  >
+                    Hide
+                  </button>
+                  <button
+                    onClick={() => setSelectedEntryIds(new Set())}
+                    className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-50"
+                  >
+                    Deselect
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Search */}
             <div className="relative">
@@ -397,13 +660,24 @@ export default function AdminHallOfFame() {
               />
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider">
                 <tr>
+                  <th className="px-4 py-3 text-center w-10">
+                    <input
+                      type="checkbox"
+                      checked={allPageSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = somePageSelected && !allPageSelected;
+                      }}
+                      onChange={handleSelectAllOnPage}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left">Researcher</th>
-                  <th className="px-6 py-3 text-left">Report</th>
+                  <th className="px-6 py-3 text-left">Title</th>
                   <th className="px-6 py-3 text-center">Severity</th>
                   <th className="px-6 py-3 text-center">Points</th>
                   <th className="px-6 py-3 text-center">Date</th>
@@ -413,21 +687,29 @@ export default function AdminHallOfFame() {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                       <div className="text-3xl mb-2">⏳</div>
                       Loading entries...
                     </td>
                   </tr>
                 ) : entries.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                      <div className="text-3xl mb-2">�</div>
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                      <div className="text-3xl mb-2">🏆</div>
                       No hall of fame entries yet
                     </td>
                   </tr>
                 ) : (
-                  entries.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-gray-50">
+                  paginatedEntries.map((entry) => (
+                    <tr key={entry.id} className={`hover:bg-gray-50 ${selectedEntryIds.has(entry.id) ? 'bg-blue-50' : ''}`}>
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntryIds.has(entry.id)}
+                          onChange={() => handleToggleSelect(entry.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {entry.avatarUrl ? (
@@ -444,14 +726,61 @@ export default function AdminHallOfFame() {
                           <span className="font-medium text-gray-900">{entry.researcherName}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <a
-                          href={`/triage/reports/${entry.reportId}`}
-                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate max-w-xs block"
-                          title={entry.title}
-                        >
-                          {entry.title}
-                        </a>
+                      <td className="px-6 py-4 max-w-xs">
+                        {editingTitle?.id === entry.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingTitle.value}
+                              onChange={(e) => setEditingTitle({ ...editingTitle, value: e.target.value })}
+                              className="flex-1 px-2 py-1 border border-blue-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Leave blank to use auto-generated title"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveTitle(entry.id);
+                                if (e.key === 'Escape') setEditingTitle(null);
+                              }}
+                            />
+                            <button
+                              onClick={() => handleSaveTitle(entry.id)}
+                              className="px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 whitespace-nowrap"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingTitle(null)}
+                              className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs font-medium hover:bg-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-2 group">
+                            <div className="flex-1 min-w-0">
+                              <a
+                                href={`/triage/reports/${entry.reportId}`}
+                                className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate block"
+                                title={entry.publicTitle ?? entry.title}
+                              >
+                                {entry.publicTitle ?? entry.title}
+                              </a>
+                              {entry.publicTitle && (
+                                <p className="text-xs text-gray-400 truncate mt-0.5" title={entry.title}>
+                                  orig: {entry.title}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => setEditingTitle({ id: entry.id, value: entry.publicTitle ?? '' })}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-gray-400 hover:text-blue-600"
+                              title="Override public title"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
@@ -465,7 +794,24 @@ export default function AdminHallOfFame() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="font-semibold text-gray-900">{entry.pointsAwarded}</span>
+                        <div className="flex items-center justify-center gap-1 group">
+                          <span className="font-semibold text-gray-900">{entry.pointsAwarded}</span>
+                          <button
+                            onClick={() => setPointsModal({
+                              id: entry.id,
+                              researcherName: entry.researcherName,
+                              currentPoints: entry.pointsAwarded,
+                              newPoints: String(entry.pointsAwarded),
+                              reason: '',
+                            })}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-blue-600"
+                            title="Adjust points"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-center text-sm text-gray-600">
                         {new Date(entry.acceptedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -550,8 +896,20 @@ export default function AdminHallOfFame() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">📊 Leaderboard</h2>
-              <div className="text-sm text-gray-500">
-                {filteredLeaderboard.length} researcher{filteredLeaderboard.length !== 1 ? 's' : ''}
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-500">
+                  {filteredLeaderboard.length} researcher{filteredLeaderboard.length !== 1 ? 's' : ''}
+                </div>
+                <button
+                  onClick={handleExportLeaderboardCSV}
+                  disabled={leaderboard.length === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export CSV
+                </button>
               </div>
             </div>
 
@@ -619,7 +977,14 @@ export default function AdminHallOfFame() {
                             </div>
                           )}
                           <div>
-                            <p className="font-semibold text-gray-900">{entry.researcherName}</p>
+                            <a
+                              href={`/researcher/${entry.researcherId}`}
+                              className="font-semibold text-gray-900 hover:text-blue-600 hover:underline"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {entry.researcherName}
+                            </a>
                             <p className="text-xs text-gray-400">{entry.researcherId}</p>
                           </div>
                         </div>
