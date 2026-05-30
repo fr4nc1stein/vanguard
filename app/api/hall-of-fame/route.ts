@@ -1,21 +1,33 @@
 /**
  * GET /api/hall-of-fame - Public leaderboard
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
-import { hallOfFame } from '@/lib/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { hallOfFame, researcherStats } from '@/lib/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 import { getDisplayName } from '@/lib/redact';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const db = getDb(getCfEnv().DB);
 
     const publicAwards = await db
-      .select()
+      .select({
+        id: hallOfFame.id,
+        reportId: hallOfFame.reportId,
+        researcherId: hallOfFame.researcherId,
+        title: hallOfFame.title,
+        publicTitle: hallOfFame.publicTitle,
+        severity: hallOfFame.severity,
+        pointsAwarded: hallOfFame.pointsAwarded,
+        acceptedAt: hallOfFame.acceptedAt,
+        isPublic: hallOfFame.isPublic,
+        createdAt: hallOfFame.createdAt,
+      })
       .from(hallOfFame)
-      .where(eq(hallOfFame.isPublic, 1))
+      .innerJoin(researcherStats, eq(hallOfFame.researcherId, researcherStats.researcherId))
+      .where(and(eq(hallOfFame.isPublic, 1), eq(researcherStats.hofOptOut, 0)))
       .orderBy(desc(hallOfFame.acceptedAt))
       .all();
 

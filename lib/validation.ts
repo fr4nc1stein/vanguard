@@ -60,6 +60,22 @@ export const ReportSubmitSchema = z.object({
 
 export type ReportSubmitInput = z.infer<typeof ReportSubmitSchema>;
 
+export const ReportDraftDataSchema = z.object({
+  handle:           z.string().max(60).optional(),
+  email:            z.string().max(254).optional(),
+  target:           z.string().max(200).optional(),
+  vulnType:         z.string().max(100).optional(),
+  severity:         z.enum(SEVERITIES).optional().or(z.literal('')),
+  title:            z.string().max(200).optional(),
+  description:      z.string().max(10_000).optional(),
+  stepsToReproduce: z.string().max(10_000).optional(),
+  impact:           z.string().max(5_000).optional(),
+  cvss:             z.string().max(200).optional(),
+  evidence:         z.string().max(2_000).optional(),
+}).strict();
+
+export type ReportDraftDataInput = z.infer<typeof ReportDraftDataSchema>;
+
 // ── Triage Update Schema ──────────────────────────────────────────────────────
 
 export const TriageUpdateSchema = z.object({

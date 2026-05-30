@@ -1,11 +1,11 @@
 /**
- * GET /api/researcher/[id] - Public researcher profile (no auth required)
+ * GET /api/researcher/[id] - Public researcher profile
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
-import { hallOfFame } from '@/lib/db/schema';
+import { hallOfFame, researcherStats } from '@/lib/db/schema';
 import { and, eq, desc } from 'drizzle-orm';
-import { clerkClient } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { getDisplayName } from '@/lib/redact';
 
 export async function GET(
@@ -14,12 +14,28 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { userId } = await auth();
+    const isOwner = userId === id;
     const db = getDb(getCfEnv().DB);
+
+    const statsRow = await db
+      .select({ hofOptOut: researcherStats.hofOptOut })
+      .from(researcherStats)
+      .where(eq(researcherStats.researcherId, id))
+      .get();
+
+    if ((statsRow?.hofOptOut ?? 0) === 1 && !isOwner) {
+      return NextResponse.json({ error: 'Researcher not found' }, { status: 404 });
+    }
+
+    const entryVisibility = isOwner
+      ? eq(hallOfFame.researcherId, id)
+      : and(eq(hallOfFame.researcherId, id), eq(hallOfFame.isPublic, 1));
 
     const publicEntries = await db
       .select()
       .from(hallOfFame)
-      .where(and(eq(hallOfFame.researcherId, id), eq(hallOfFame.isPublic, 1)))
+      .where(entryVisibility)
       .orderBy(desc(hallOfFame.acceptedAt))
       .all();
 

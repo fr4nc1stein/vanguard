@@ -5,14 +5,14 @@
  * When titleDisclosed is 0, the title is redacted to prevent disclosure
  * of undisclosed vulnerability reports.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
-import { hacktivity, hallOfFame } from '@/lib/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { hacktivity, hallOfFame, researcherStats } from '@/lib/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 import { getDisplayName } from '@/lib/redact';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const db = getDb(getCfEnv().DB);
     
@@ -33,7 +33,8 @@ export async function GET(_request: NextRequest) {
       })
       .from(hacktivity)
       .innerJoin(hallOfFame, eq(hacktivity.reportId, hallOfFame.reportId))
-      .where(eq(hallOfFame.isPublic, 1))
+      .innerJoin(researcherStats, eq(hacktivity.researcherId, researcherStats.researcherId))
+      .where(and(eq(hallOfFame.isPublic, 1), eq(researcherStats.hofOptOut, 0)))
       .orderBy(desc(hacktivity.timestamp))
       .limit(100)
       .all();
