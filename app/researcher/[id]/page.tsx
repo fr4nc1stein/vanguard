@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
@@ -50,10 +51,40 @@ function sevStyle(sev: string) {
 export default function ResearcherProfile() {
   const params = useParams();
   const id = params.id as string;
+  const { user } = useUser();
 
   const [profile, setProfile] = useState<ResearcherProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [hofOptOut, setHofOptOut] = useState(false);
+  const [savingPref, setSavingPref] = useState(false);
+
+  const isOwnProfile = !!user && user.id === id;
+
+  useEffect(() => {
+    if (!isOwnProfile) return;
+    fetch("/api/researcher/preferences")
+      .then((r) => r.json())
+      .then((d) => setHofOptOut(d.hofOptOut ?? false))
+      .catch(() => {});
+  }, [isOwnProfile]);
+
+  async function toggleHofOptOut() {
+    setSavingPref(true);
+    const next = !hofOptOut;
+    try {
+      await fetch("/api/researcher/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hofOptOut: next }),
+      });
+      setHofOptOut(next);
+    } catch {
+      // revert on failure
+    } finally {
+      setSavingPref(false);
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -177,6 +208,35 @@ export default function ResearcherProfile() {
                 </table>
               </div>
             </div>
+
+            {/* HoF visibility — only shown to the profile owner */}
+            {isOwnProfile && (
+              <div className="mt-6 bg-white rounded-2xl border border-gray-200 p-6">
+                <h3 className="text-sm font-semibold text-gray-800 mb-1">Hall of Fame Visibility</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  Control whether your profile and accepted reports appear publicly on the Hall of Fame.
+                </p>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div
+                    onClick={!savingPref ? toggleHofOptOut : undefined}
+                    className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                      savingPref ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    } ${hofOptOut ? "bg-gray-300" : "bg-blue-600"}`}
+                  >
+                    <span
+                      className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                        hofOptOut ? "translate-x-1" : "translate-x-5"
+                      }`}
+                    />
+                  </div>
+                  <span className="text-sm text-gray-700">
+                    {hofOptOut
+                      ? "Hidden from Hall of Fame — your profile is private"
+                      : "Visible on Hall of Fame — your profile is public"}
+                  </span>
+                </label>
+              </div>
+            )}
 
             <div className="mt-6 text-center">
               <Link href="/hall-of-fame" className="text-sm text-blue-600 hover:underline font-medium">

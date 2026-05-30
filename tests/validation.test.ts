@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ReportSubmitSchema,
+  ReportDraftDataSchema,
   TriageUpdateSchema,
   PresignRequestSchema,
   PaginationSchema,
@@ -250,6 +251,36 @@ describe('Validation Module', () => {
         ...validReport,
         evidence: 'A'.repeat(2001),
       });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('ReportDraftDataSchema', () => {
+    it('should accept partial in-progress draft data', () => {
+      const result = ReportDraftDataSchema.safeParse({
+        target: 'vanguard.laet4x.com',
+        severity: '',
+        title: 'Short',
+        description: '',
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject unknown draft fields', () => {
+      const result = ReportDraftDataSchema.safeParse({
+        title: 'Authentication bypass in admin endpoint',
+        role: 'ADMIN',
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should enforce draft field length limits', () => {
+      const result = ReportDraftDataSchema.safeParse({
+        description: 'A'.repeat(10_001),
+      });
+
       expect(result.success).toBe(false);
     });
   });

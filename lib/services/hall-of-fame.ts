@@ -12,7 +12,7 @@ import {
   hacktivity,
   auditLogs 
 } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -349,6 +349,7 @@ export async function getLeaderboard(limit: number = 100) {
     const leaders = await db
       .select()
       .from(researcherStats)
+      .where(eq(researcherStats.hofOptOut, 0))
       .orderBy(desc(researcherStats.totalPoints))
       .limit(limit)
       .all();
@@ -401,8 +402,21 @@ export async function getHacktivity(limit: number = 100) {
   
   try {
     const activities = await db
-      .select()
+      .select({
+        id: hacktivity.id,
+        reportId: hacktivity.reportId,
+        researcherId: hacktivity.researcherId,
+        action: hacktivity.action,
+        title: hacktivity.title,
+        severity: hacktivity.severity,
+        points: hacktivity.points,
+        titleDisclosed: hacktivity.titleDisclosed,
+        timestamp: hacktivity.timestamp,
+      })
       .from(hacktivity)
+      .innerJoin(hallOfFame, eq(hacktivity.reportId, hallOfFame.reportId))
+      .innerJoin(researcherStats, eq(hacktivity.researcherId, researcherStats.researcherId))
+      .where(and(eq(hallOfFame.isPublic, 1), eq(researcherStats.hofOptOut, 0)))
       .orderBy(desc(hacktivity.timestamp))
       .limit(limit)
       .all();

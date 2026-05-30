@@ -91,7 +91,18 @@ export const researcherStats = sqliteTable('researcher_stats', {
   infoCount:       integer('info_count').notNull().default(0),
   firstReportAt:   integer('first_report_at'),
   lastReportAt:    integer('last_report_at'),
+  hofOptOut:       integer('hof_opt_out').notNull().default(0),
   updatedAt:       integer('updated_at').notNull(),
+});
+
+// ── Report Drafts (one active draft per user) ─────────────────────────────────
+export const reportDrafts = sqliteTable('report_drafts', {
+  id:          text('id').primaryKey(),
+  clerkUserId: text('clerk_user_id').notNull().unique(),
+  data:        text('data').notNull(), // encrypted JSON-encoded form fields
+  dataIv:      text('data_iv').notNull(),
+  createdAt:   integer('created_at').notNull(),
+  updatedAt:   integer('updated_at').notNull(),
 });
 
 // ── Hall of Fame Entries (Public recognition) ────────────────────────────────
@@ -170,6 +181,8 @@ export type PointsConfig     = typeof pointsConfig.$inferSelect;
 export type NewPointsConfig  = typeof pointsConfig.$inferInsert;
 export type ResearcherStats  = typeof researcherStats.$inferSelect;
 export type NewResearcherStats = typeof researcherStats.$inferInsert;
+export type ReportDraft      = typeof reportDrafts.$inferSelect;
+export type NewReportDraft   = typeof reportDrafts.$inferInsert;
 export type HallOfFame       = typeof hallOfFame.$inferSelect;
 export type NewHallOfFame    = typeof hallOfFame.$inferInsert;
 export type Hacktivity       = typeof hacktivity.$inferSelect;

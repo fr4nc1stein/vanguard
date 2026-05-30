@@ -1,21 +1,27 @@
 /**
  * GET /api/hall-of-fame/stats - Overall statistics
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getDb, getCfEnv } from '@/lib/db';
-import { hallOfFame } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { hallOfFame, researcherStats } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 import { clerkClient } from '@clerk/nextjs/server';
 import { getDisplayName } from '@/lib/redact';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const db = getDb(getCfEnv().DB);
 
     const publicAwards = await db
-      .select()
+      .select({
+        id: hallOfFame.id,
+        researcherId: hallOfFame.researcherId,
+        pointsAwarded: hallOfFame.pointsAwarded,
+        acceptedAt: hallOfFame.acceptedAt,
+      })
       .from(hallOfFame)
-      .where(eq(hallOfFame.isPublic, 1))
+      .innerJoin(researcherStats, eq(hallOfFame.researcherId, researcherStats.researcherId))
+      .where(and(eq(hallOfFame.isPublic, 1), eq(researcherStats.hofOptOut, 0)))
       .all();
 
     // Calculate totals
