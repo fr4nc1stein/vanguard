@@ -13,10 +13,12 @@ Apply migrations in the order below for a fresh database. The filenames are not 
 9. `migrations/0010_convert_assigned_to_user_ids.sql`
 10. `migrations/0011_support_user_audit_logs.sql`
 11. `migrations/0012_scope_enhancements.sql`
+12. `migrations/0013_hof_enhancements.sql`
+13. `migrations/0014_researcher_features.sql`
 
 Run data maintenance scripts only after the schema migrations they depend on:
 
 - `migrations/backfill_hall_of_fame.sql`
 - `migrations/redact_existing_pii.sql`
 
-When adding new migrations, use four-digit zero-padded prefixes starting at `0013_` and keep Drizzle definitions in `lib/db/schema.ts` aligned with the resulting schema.
+When adding new migrations, use four-digit zero-padded prefixes starting at `0015_` and keep Drizzle definitions in `lib/db/schema.ts` aligned with the resulting schema.

@@ -448,7 +448,7 @@ The following capabilities are planned in the project roadmap:
 
 **Notification System (VAN-19).** Email notifications for status changes, in-app notification centre, and configurable webhook integrations beyond Discord.
 
-**Researcher Experience (VAN-20).** Report draft saving, automatic duplicate detection, guided submission wizard, and researcher-facing vulnerability templates.
+**Researcher Experience (VAN-20, completed).** Report draft saving, simple duplicate detection, guided submission wizard, researcher-facing vulnerability templates, and Hall of Fame recognition preferences are implemented. Authenticated production regression coverage still requires safe test accounts.
 
 **Triage Enhancements (VAN-21).** Bulk status actions, custom report labels, saved filter sets, CVE linking, and bounty tracking.
 

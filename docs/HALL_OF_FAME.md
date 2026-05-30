@@ -4,9 +4,10 @@
 
 The Hall of Fame is a public recognition system that showcases security researchers who have successfully identified and reported vulnerabilities. It includes a points-based leaderboard, time-period filtering, and an activity feed (Hacktivity).
 
-**Live URL:** https://vanguard.laet4x.com/hall-of-fame  
-**Status:** ✅ Fully Deployed (v2.5.0)  
-**Release Date:** May 16, 2026
+- **Live URL:** https://vanguard.laet4x.com/hall-of-fame
+- **Status:** ✅ Fully Deployed and live-smoke-tested
+- **Release Date:** May 16, 2026
+- **Latest Validation:** May 29, 2026 (`VAN-17`, `VAN-20`, `VAN-26`)
 
 ---
 
@@ -34,9 +35,15 @@ The Hall of Fame is a public recognition system that showcases security research
 - ✅ Points configuration editor
 - ✅ Triage page integration
 - ✅ Clickable report links
+- ✅ Public title override editing
+- ✅ Manual point adjustment with audit trail
+- ✅ Leaderboard CSV export
+- ✅ Bulk visibility toggle
 
 **Bonus Features Delivered:**
 - ✅ Direct visibility toggle from triage report detail page
+- ✅ Public researcher profile pages
+- ✅ Researcher recognition opt-out preference
 - ✅ Comprehensive error logging
 - ✅ Edge runtime compatibility fixes
 - ✅ Real-time hacktivity status updates (accepted → resolved)
@@ -70,10 +77,17 @@ The Hall of Fame is a public recognition system that showcases security research
 
 ### 👁️ Visibility Management (Admin)
 - **Per-Entry Toggle** - Hide/show individual entries from public view
+- **Bulk Visibility Toggle** - Show/hide multiple entries in one operation
 - **Search & Filter** - Find entries by researcher or report title
 - **Pagination** - 10 entries per page for easy management
 - **Clickable Reports** - Direct links to report detail pages
 - **Triage Integration** - Toggle visibility directly from report detail page
+- **Researcher Opt-Out** - Researcher preference is enforced across public Hall of Fame, stats, hacktivity, and profile APIs
+
+### ✏️ Admin Corrections
+- **Public Title Override** - Admins can replace the auto-redacted title shown publicly
+- **Manual Point Adjustment** - Admin corrections require a reason and are audit-logged
+- **Leaderboard CSV Export** - Export leaderboard data for reporting
 
 ### ⚙️ Points Configuration (Admin)
 - **Customizable Points** - Set points per severity level
@@ -88,8 +102,8 @@ CREATE TABLE hall_of_fame (
   id TEXT PRIMARY KEY,
   report_id TEXT NOT NULL UNIQUE,
   researcher_id TEXT NOT NULL,
-  researcher_name TEXT NOT NULL,
   title TEXT NOT NULL,              -- Redacted title
+  public_title TEXT,                 -- Admin override; null = use title
   severity TEXT NOT NULL,            -- critical, high, medium, low, info
   points_awarded INTEGER NOT NULL,
   accepted_at INTEGER NOT NULL,
@@ -102,7 +116,6 @@ CREATE TABLE hall_of_fame (
 ```sql
 CREATE TABLE researcher_stats (
   researcher_id TEXT PRIMARY KEY,
-  researcher_name TEXT NOT NULL,
   total_points INTEGER NOT NULL DEFAULT 0,
   total_reports INTEGER NOT NULL DEFAULT 0,
   accepted_reports INTEGER NOT NULL DEFAULT 0,
@@ -113,6 +126,7 @@ CREATE TABLE researcher_stats (
   info_count INTEGER NOT NULL DEFAULT 0,
   first_report_at INTEGER,
   last_report_at INTEGER,
+  hof_opt_out INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL
 );
 ```
@@ -123,7 +137,6 @@ CREATE TABLE hacktivity (
   id TEXT PRIMARY KEY,
   report_id TEXT NOT NULL,
   researcher_id TEXT NOT NULL,
-  researcher_name TEXT NOT NULL,
   action TEXT NOT NULL,              -- 'accepted' or 'resolved'
   title TEXT NOT NULL,               -- Redacted title
   severity TEXT NOT NULL,
@@ -421,8 +434,9 @@ After:  "Authentication bypass via [IP]"
 - Consistent sizing across all interfaces
 
 **Privacy:**
-- Researchers can opt-out of public display (future feature)
+- Researchers can opt out of public display through the researcher profile preference
 - Default: Public display enabled for all accepted reports
+- Opted-out researchers are excluded from leaderboard, stats, hacktivity, and public profile responses
 - Avatar URLs are public Clerk CDN links
 
 ---
@@ -431,17 +445,19 @@ After:  "Authentication bypass via [IP]"
 
 ### Current Implementation
 
-**Status:** Manual marking only (no automatic detection)
+**Status:** Simple researcher-facing duplicate warning plus manual triage marking
 
 **Process:**
-1. Admin identifies duplicate report during triage
-2. Changes report status to `duplicate`
-3. No points awarded for duplicate reports
-4. Original report retains its points and Hall of Fame entry
+1. Signed-in researcher enters a report title in the submission wizard.
+2. `/api/reports/similar` compares the title against the researcher's own non-rejected/non-duplicate reports.
+3. The submit UI shows up to three similar report warnings before submission.
+4. Admin can still identify a duplicate report during triage and change status to `duplicate`.
+5. No points are awarded for duplicate reports.
+6. Original report retains its points and Hall of Fame entry.
 
 **Database Field:**
 - `reports.duplicate_of` - Optional TEXT field linking to original report ID
-- Currently unused (reserved for future enhancement)
+- Reserved for future original-report linking during triage duplicate marking
 
 ### Future Enhancement (Planned)
 
@@ -762,28 +778,22 @@ DROP TABLE IF EXISTS points_config;
 - No automatic retroactive point recalculation
 - Leaderboard limited to top 100 researchers
 - Hacktivity feed limited to last 100 entries
-- No duplicate detection algorithm (manual marking only)
-- Avatar fetching requires Clerk API call (cached in stats)
+- Duplicate detection for submissions is intentionally simple title/target similarity; triage duplicate marking remains manual
+- Avatar fetching requires Clerk API call
 - Time period filters use simple date math (not calendar months/years)
 
 **Technical Debt:**
 - Edge runtime removed from scope endpoints (Clerk API compatibility)
-- Manual title editing not yet implemented in admin UI
-- No bulk visibility toggle
-- No CSV export for leaderboard data
+- Authenticated production regression coverage still requires safe admin/researcher test accounts
 
 ---
 
 ## Future Enhancements
 
 **Planned (Short-term):**
-- [ ] Export leaderboard to CSV
-- [ ] Manual point adjustment with reason field
-- [ ] Bulk visibility toggle for entries
 - [ ] Advanced search filters (by severity, date range)
 
 **Planned (Long-term):**
-- [ ] Researcher profile pages
 - [ ] Achievement badges and milestones
 - [ ] Monthly/yearly awards and recognition
 - [ ] Email notifications for points awarded
@@ -793,7 +803,6 @@ DROP TABLE IF EXISTS points_config;
 - [ ] Severity-specific leaderboards
 - [ ] Team/organization leaderboards
 - [ ] Advanced duplicate detection (ML-based)
-- [ ] Researcher opt-in/opt-out preferences
 - [ ] Real-time leaderboard updates (WebSocket)
 
 ---

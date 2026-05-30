@@ -4,6 +4,47 @@ All notable changes to the Vanguard VDP platform.
 
 > **Versioning Strategy:** This project uses semantic versioning with `0.x.y` for development releases and `1.x.y` for production releases. Version `1.0.0` will mark the first production-ready release.
 
+## [v1.0.7] - 2026-05-29
+
+### ✅ Live Validation (`VAN-26`)
+- Ran targeted live smoke validation against `https://vanguard.laet4x.com`.
+- Validated deployed surfaces for `VAN-13`, `VAN-14`, `VAN-16`, `VAN-17`, and `VAN-20`.
+- Existing live Playwright E2E result: `22 passed`, `3 skipped`.
+- Skips were submit-page form assertions that are intentionally skipped when production redirects signed-out users from `/submit` to `/sign-in`.
+- Local unit suite result: `npm test` passed with `159` tests.
+
+### 📋 Activity Logs (`VAN-16`)
+- Verified `/admin/activity-logs` redirects signed-out browser requests to sign-in.
+- Verified activity log list/export APIs reject unauthenticated access.
+- Retention policy controls remain deferred until Program Settings exists.
+
+### 🏆 Hall of Fame Admin (`VAN-17`)
+- Added public title override support for Hall of Fame entries.
+- Added manual point adjustment with reason/audit trail support.
+- Added leaderboard CSV export and bulk visibility controls.
+- Added public researcher profile pages.
+- Verified public Hall of Fame, stats, and hacktivity APIs return healthy `200` responses in production.
+
+### 🧭 Researcher Experience (`VAN-20`)
+- Added guided three-step report submission wizard.
+- Added encrypted report draft storage and draft CRUD API.
+- Added duplicate detection API for signed-in researchers.
+- Added researcher-facing vulnerability templates.
+- Added Hall of Fame recognition opt-out preference.
+- Enforced opt-out in public Hall of Fame, stats, hacktivity, and researcher profile responses.
+- Added strict draft payload validation and unit test coverage.
+
+### 🗄️ Database Migrations
+- **Migration 0013:** Added Hall of Fame public title override.
+- **Migration 0014:** Added encrypted report drafts and researcher Hall of Fame opt-out.
+
+### ⚠️ Coverage Notes
+- Production validation was unauthenticated, so it verified public behavior and auth boundaries.
+- Authenticated state-changing coverage still needs a production-safe test admin/researcher session.
+- Browser-style protected page requests return `307` to `/sign-in`; bare non-browser fetches return Clerk's `404 protect-rewrite`.
+
+---
+
 ## [v1.0.6] - 2026-05-25
 
 ### 👥 User Management Gaps

@@ -4,7 +4,7 @@
 
 This document tracks the current admin and triage feature surface in the codebase. It is based on the checked-in routes, API handlers, migrations, and database schema.
 
-**Last Updated:** May 25, 2026
+**Last Updated:** May 29, 2026
 **Status:** Active implementation tracker
 **Owner:** Platform Team
 
@@ -19,8 +19,9 @@ This document tracks the current admin and triage feature surface in the codebas
 | Scope management | Done | Database-backed targets, restrictions, archive/restore, public scope API |
 | Analytics dashboard | Done | Metrics, distributions, trends, top reporters/targets, CSV export |
 | Activity logs | Done | Admin viewer, filters, search, pagination, CSV export |
-| Hall of Fame management | Done | Leaderboard, hacktivity, points config, visibility controls |
+| Hall of Fame management | Done | Leaderboard, hacktivity, points config, title/point adjustments, visibility controls |
 | Response templates | Done | Template CRUD, variables, preview, triage usage |
+| Researcher experience | Done | Submission wizard, encrypted drafts, duplicate detection, report templates, recognition preference |
 | Program settings | Pending | No `/admin/settings`, API route, or `program_settings` table yet |
 | Integration management | Pending | No `/admin/integrations`, API route, or `integrations` table yet |
 | Notifications | Partial | New-report Discord webhook exists; email/in-app/configurable integrations pending |
@@ -118,17 +119,17 @@ This document tracks the current admin and triage feature surface in the codebas
 - Report links back to triage detail pages
 - User display uses names instead of exposing emails or raw Clerk IDs
 - Internal/public visibility support for audit log entries
+- Broader action taxonomy for user, scope, Hall of Fame, and communication workflows
+- Per-triager scoped activity views
 
 **Still Pending:**
-- Broader action taxonomy for future workflows
-- Per-triager scoped audit views
 - Retention policy controls
 
 ---
 
 ### 5. Hall of Fame Management
 
-**Status:** Done, with recognition enhancements pending
+**Status:** Done, with future recognition enhancements pending
 
 **Implemented:**
 - `/hall-of-fame`
@@ -145,17 +146,17 @@ This document tracks the current admin and triage feature surface in the codebas
 - Auto-award points on accepted/fixed reports
 - Per-severity points configuration
 - Visibility toggles
+- Bulk visibility toggle
+- Public title override editing
+- Manual point adjustment with required reason/audit trail
+- Leaderboard CSV export
 - Title redaction for sensitive values
 - Clerk avatars and display names
+- Public researcher profile pages
+- Researcher opt-in/opt-out preferences for public recognition
 
 **Still Pending:**
-- Manual public title editing in admin UI
-- Manual point adjustment with reason field
-- Leaderboard CSV export
-- Bulk visibility toggle
-- Researcher profile pages
 - Badges, milestones, and monthly/yearly awards
-- Researcher opt-in/opt-out preferences
 - Real-time leaderboard updates
 
 ---
@@ -177,7 +178,7 @@ This document tracks the current admin and triage feature surface in the codebas
 **Still Pending:**
 - Email delivery integration
 - Template version history
-- Dedicated researcher-facing vulnerability report templates
+- Admin-managed researcher-facing vulnerability report templates
 - Automated template use for notifications
 
 ---
@@ -254,11 +255,17 @@ This document tracks the current admin and triage feature surface in the codebas
 
 ### Researcher Experience
 
-- Report drafts before submit
-- Automatic duplicate detection
-- Submission wizard or guided report flow
+**Status:** Done for `VAN-20`
+
+Implemented:
+- Guided report submission wizard
+- Encrypted report drafts before submit
+- Automatic duplicate detection for signed-in researchers
 - Researcher-facing vulnerability templates
 - Researcher public recognition preferences
+
+Still pending:
+- Authenticated production regression coverage with a safe test researcher account
 
 ### Triage Workflow
 
@@ -321,6 +328,7 @@ Defined in Drizzle schema:
 - `comments`
 - `points_config`
 - `researcher_stats`
+- `report_drafts`
 - `hall_of_fame`
 - `hacktivity`
 
@@ -333,8 +341,29 @@ Not implemented yet:
 - `notifications`
 - `report_labels` / `report_tags`
 - `saved_filters`
-- `report_drafts`
 - `bounties` / `rewards`
+
+---
+
+## Recent Live Validation
+
+`VAN-26` records the latest live validation pass against `https://vanguard.laet4x.com`.
+
+Validated tickets:
+- `VAN-13` — User Management
+- `VAN-14` — Scope Management
+- `VAN-16` — Activity Logs
+- `VAN-17` — Hall of Fame Admin
+- `VAN-20` — Researcher Experience
+
+Results:
+- Targeted live smoke matrix: all checked routes/APIs passed expected public/auth-boundary behavior.
+- Existing live Playwright E2E: `22 passed`, `3 skipped`.
+- Skipped tests were submit-page form assertions skipped because production redirects unauthenticated users from `/submit` to `/sign-in`.
+- Local `npm test`: `159 passed`.
+
+Coverage note:
+- Live testing was unauthenticated. Full state-changing admin/researcher coverage still requires production-safe test accounts.
 
 ---
 

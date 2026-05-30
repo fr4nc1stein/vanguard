@@ -2,9 +2,9 @@
 
 A modern vulnerability disclosure platform built for security researchers and security teams. Submit encrypted reports, track resolution status, and manage your bug bounty program with enterprise-grade features.
 
-**Live:** https://vanguard.laet4x.com  
-**Version:** v1.0.5-hotfix  
-**Status:** 🧪 Public Alpha - Open for Testing
+- **Live:** https://vanguard.laet4x.com
+- **Version:** v1.0.7
+- **Status:** 🧪 Public Alpha - Open for Testing
 
 ---
 
@@ -75,6 +75,11 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **Title Redaction** — Automatic removal of sensitive info (emails, IPs, tokens)
 - ✅ **Researcher Profiles** — Clerk-integrated avatars and names
 - ✅ **Admin Entry Management** — Search, pagination, and visibility control
+- ✅ **Public Title Overrides** — Admins can manually adjust disclosed titles
+- ✅ **Point Adjustments** — Admin correction workflow with audit trail
+- ✅ **Leaderboard CSV Export** — Export leaderboard data for reporting
+- ✅ **Bulk Visibility Controls** — Show/hide multiple entries at once
+- ✅ **Researcher Recognition Preference** — Researcher opt-out enforced in public Hall of Fame surfaces
 - ✅ **Triage Integration** — Toggle visibility from report detail page
 
 ### 👥 User & Access Management
@@ -117,6 +122,16 @@ A modern vulnerability disclosure platform built for security researchers and se
 - ✅ **Toggle Visibility** — Change comments/logs between internal and public
 - ✅ **Text Wrapping** — Long content wraps properly in timeline
 - ✅ **Email Privacy** — Zero email exposure across entire system
+- ✅ **Per-Triager Activity Views** — Triagers can access scoped activity history
+- ✅ **Expanded Action Taxonomy** — Audit actions cover newer user, scope, Hall of Fame, and communication workflows
+
+### 🧭 Researcher Experience (VAN-20)
+- ✅ **Guided Submission Wizard** — Target/classification, vulnerability details, and review/submit steps
+- ✅ **Encrypted Report Drafts** — Authenticated users can autosave drafts before submission
+- ✅ **Duplicate Detection** — Signed-in researchers get warnings for similar prior reports
+- ✅ **Vulnerability Templates** — Starter templates for common finding types
+- ✅ **Recognition Preferences** — Researchers can opt out of public Hall of Fame recognition
+- ✅ **Server-Side Draft Validation** — Autosaved draft payloads are constrained to expected fields
 
 ### 🔍 Modern Table Features (v0.4.0-dev)
 All data tables include:
@@ -203,6 +218,23 @@ npx wrangler d1 execute vanguard-security --remote --file=migrations/0001_schema
 ```bash
 npm run deploy
 ```
+
+### Testing
+
+```bash
+# Unit tests
+npm test
+
+# Public/live E2E smoke tests against production
+BASE_URL=https://vanguard.laet4x.com npx playwright test
+```
+
+Latest validation (`VAN-26`, May 29, 2026):
+- Targeted live smoke tested `VAN-13`, `VAN-14`, `VAN-16`, `VAN-17`, and `VAN-20`.
+- Live Playwright E2E: `22 passed`, `3 skipped`.
+- Skips were submit-page form assertions skipped because production redirects signed-out users from `/submit` to `/sign-in`.
+- Local unit suite: `159 passed`.
+- Full authenticated production state-changing coverage still needs safe admin/researcher test accounts.
 
 ## Project Structure
 
@@ -307,11 +339,11 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 - [x] Authenticated submission flow
 - [x] Researcher dashboard and report detail pages
 - [x] Two-way comments with triage team
-- [ ] Report drafts (save before submit)
-- [ ] Automatic duplicate detection
-- [ ] Researcher-facing report templates for common vulnerabilities
-- [ ] Submission wizard/guide
-- [ ] Researcher opt-in/opt-out preferences for public recognition
+- [x] Report drafts (save before submit)
+- [x] Automatic duplicate detection
+- [x] Researcher-facing report templates for common vulnerabilities
+- [x] Submission wizard/guide
+- [x] Researcher opt-in/opt-out preferences for public recognition
 
 **Triage Workflow**
 - [x] Status lifecycle management
@@ -346,7 +378,21 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 
 > **Note:** Earlier development builds used `0.x.y` versions. Current releases use `1.x.y` tags while the platform remains in public alpha.
 
-**v1.0.5-hotfix (May 22, 2026)** - Current
+**v1.0.7 (May 29, 2026)** - Current
+- ✅ Live validation of `VAN-13`, `VAN-14`, `VAN-16`, `VAN-17`, and `VAN-20`
+- ✅ Activity Logs module boundary checks completed for `VAN-16`
+- ✅ Hall of Fame admin gaps completed for `VAN-17`
+- ✅ Researcher drafts, duplicate detection, wizard, templates, and recognition preferences completed for `VAN-20`
+- ✅ Live Playwright E2E: `22 passed`, `3 skipped`
+- ✅ Local unit tests: `159 passed`
+
+**v1.0.6 (May 25, 2026)**
+- ✅ User Management gaps completed for `VAN-13`
+- ✅ Scope Management gaps completed for `VAN-14`
+- ✅ User/system audit entity support
+- ✅ Scope restrictions, guidance, exclusions, and archive/restore flow
+
+**v1.0.5-hotfix (May 22, 2026)**
 - ✅ Email privacy hotfix across activity logs, audit logs, and user display
 - ✅ Unified Timeline improvements
 - ✅ Internal/public visibility toggles for comments and audit logs
@@ -394,7 +440,7 @@ npm uninstall @aws-sdk/client-s3 @aws-sdk/s3-request-presigner --legacy-peer-dep
 
 **Required before removing public-alpha status:**
 - [ ] Security audit completion
-- [ ] Comprehensive testing suite expansion (unit tests and public E2E smoke tests exist)
+- [ ] Comprehensive testing suite expansion (unit tests and public/live E2E smoke tests exist; authenticated production test-account coverage still needed)
 - [ ] Production deployment infrastructure
 - [ ] User acceptance testing
 - [ ] Performance optimization

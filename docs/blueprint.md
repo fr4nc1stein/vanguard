@@ -145,6 +145,29 @@ vanguard-vdp/
 | `created_at` | INTEGER | Unix ms |
 | `updated_at` | INTEGER | Unix ms |
 
+### `report_drafts`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | TEXT PK | UUIDv4 |
+| `clerk_user_id` | TEXT UNIQUE | One active draft per signed-in researcher |
+| `data` | TEXT | AES-GCM ciphertext containing JSON draft fields |
+| `data_iv` | TEXT | IV for draft decryption |
+| `created_at` | INTEGER | Unix ms |
+| `updated_at` | INTEGER | Unix ms |
+
+### `researcher_stats`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `researcher_id` | TEXT PK | Clerk user ID |
+| `total_points` | INTEGER | Aggregated Hall of Fame points |
+| `total_reports` | INTEGER | Total researcher reports |
+| `accepted_reports` | INTEGER | Accepted/fixed Hall of Fame reports |
+| `critical_count` / `high_count` / `medium_count` / `low_count` / `info_count` | INTEGER | Severity breakdown |
+| `hof_opt_out` | INTEGER | 1 = hide from public Hall of Fame/profile/hacktivity surfaces |
+| `updated_at` | INTEGER | Unix ms |
+
 ---
 
 ## Auth & Roles
@@ -169,6 +192,7 @@ Routes protected by `middleware.ts`:
 
 ### Encryption
 - All sensitive report content (description, steps, impact, email) encrypted with **AES-GCM-256** before writing to D1
+- Autosaved researcher drafts are encrypted with **AES-GCM-256** before writing to D1
 - Key stored as `ENCRYPTION_KEY` env var (64 hex chars = 32 bytes)
 - Each encryption generates a fresh random 96-bit IV (never reused)
 - Only staff (TRIAGER/ADMIN) can decrypt report body — decryption is audit-logged
@@ -252,6 +276,8 @@ npm run deploy
 - ✅ Role-based access control (RBAC) enforced at middleware and API levels
 - ✅ OpenNext Cloudflare runtime is configured centrally
 - ✅ Encryption and audit logging fully operational
+- ✅ VAN-13, VAN-14, VAN-16, VAN-17, and VAN-20 deployed surfaces live-smoke-tested on `https://vanguard.laet4x.com`
+- ✅ Researcher drafts are encrypted at rest and Hall of Fame opt-out is enforced in public recognition surfaces
 
 ### Optional Cleanup Tasks
 

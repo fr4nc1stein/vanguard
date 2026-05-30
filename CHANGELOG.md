@@ -1,5 +1,63 @@
 # Changelog
 
+## VAN-16 / VAN-17 / VAN-20 Deployment Validation
+
+**Date:** May 29, 2026
+**Status:** ✅ Deployed to production and live smoke tested
+**Linear:** `VAN-26` live validation record
+
+---
+
+### 📋 Activity Logs Completion (`VAN-16`)
+
+- Verified `/admin/activity-logs` protects unauthenticated browser requests with a sign-in redirect.
+- Verified `/api/admin/activity-logs` and `/api/admin/activity-logs/export` reject unauthenticated requests with `401`.
+- Confirmed retention policy controls remain intentionally deferred until the Program Settings module exists.
+
+### 🏆 Hall of Fame Admin Completion (`VAN-17`)
+
+- Added admin-facing public title editing and point adjustment support with audit logging.
+- Added leaderboard CSV export and bulk visibility toggles.
+- Added public researcher profile pages with researcher stats and accepted report listings.
+- Verified public Hall of Fame APIs on production:
+  - `/api/hall-of-fame` returned `200`
+  - `/api/hall-of-fame/stats` returned `200`
+  - `/api/hacktivity` returned `200`
+- Verified admin Hall of Fame APIs reject unauthenticated access.
+
+### 🧭 Researcher Experience Improvements (`VAN-20`)
+
+- Added a three-step guided submission wizard.
+- Added report draft autosave with encrypted-at-rest draft storage.
+- Added duplicate detection endpoint for signed-in researchers.
+- Added vulnerability report templates for common finding types.
+- Added Hall of Fame recognition opt-out preference and enforced it in public Hall of Fame, hacktivity, stats, and profile responses.
+- Added draft payload validation to constrain autosaved fields and lengths.
+
+### ✅ Live Validation Summary
+
+- `VAN-13` User Management: passed unauthenticated route/API boundary checks.
+- `VAN-14` Scope Management: passed public scope and admin API boundary checks.
+- `VAN-16` Activity Logs: passed page/API boundary checks.
+- `VAN-17` Hall of Fame Admin: passed public API and admin API boundary checks.
+- `VAN-20` Researcher Experience: passed protected submit/drafts/similar/preferences checks.
+- Existing live Playwright E2E against `https://vanguard.laet4x.com`: `22 passed`, `3 skipped`.
+- Skipped tests were submit-page form assertions that are intentionally skipped when production redirects signed-out users to sign-in.
+- Local `npm test`: `159 passed`.
+
+### ⚠️ Coverage Notes
+
+- Production testing was performed without an authenticated admin/researcher session.
+- Full state-changing coverage still needs a production-safe test account for admin CRUD, signed-in draft autosave, duplicate warning display, and Hall of Fame opt-out persistence.
+- Bare non-browser fetches to protected page routes return Clerk's `404 protect-rewrite`; browser-style document requests correctly return `307` to `/sign-in`.
+
+### 🗄️ Database Migrations
+
+- `0013_hof_enhancements.sql` — adds Hall of Fame public title override support.
+- `0014_researcher_features.sql` — adds encrypted report drafts and researcher Hall of Fame opt-out preference.
+
+---
+
 ## VAN-13 / VAN-14 Admin Module Completion
 
 **Date:** May 25, 2026
