@@ -170,6 +170,25 @@ vanguard-vdp/
 
 ---
 
+## Reference ID Format
+
+**Pattern:** `VVDP-[S]-YYYY-XXXXXXXX`
+
+| Part | Meaning |
+|------|---------|
+| `VVDP` | Vanguard Vulnerability Disclosure Program |
+| `[S]` | Severity code — `C` Critical, `H` High, `M` Medium, `L` Low, `I` Info |
+| `YYYY` | Year of submission |
+| `XXXXXXXX` | 8-character cryptographically secure random hex |
+
+Example: `VVDP-C-2026-A3F2B891`
+
+The severity code is set at submission time and **never changes**, even if a triager adjusts severity during triage. This keeps reference IDs stable across the report lifecycle.
+
+Validation regex: `^VVDP-[CHMLI]-\d{4}-[A-F0-9]{8}$`
+
+---
+
 ## Auth & Roles
 
 Roles are set in Clerk `publicMetadata.role`:

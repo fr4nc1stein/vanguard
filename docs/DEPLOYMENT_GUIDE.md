@@ -164,20 +164,34 @@ database_name = "vanguard-security"
 database_id = "YOUR-DATABASE-UUID-HERE"  # Replace with your actual UUID
 ```
 
-### 3.4 Apply Database Schema
+### 3.4 Apply Database Migrations
 
-Apply the initial schema to your D1 database:
+Apply all migrations in order for a fresh database:
 
 ```bash
-# Apply main schema
-npx wrangler d1 execute vanguard-security --remote --file=migrations/0001_schema.sql --yes
-
-# Apply additional migrations (if any)
-npx wrangler d1 execute vanguard-security --remote --file=migrations/004_create_comments_table.sql --yes
-npx wrangler d1 execute vanguard-security --remote --file=migrations/003_create_scopes_table.sql --yes
-npx wrangler d1 execute vanguard-security --remote --file=migrations/0005_hall_of_fame.sql --yes
-npx wrangler d1 execute vanguard-security --remote --file=migrations/0006_response_templates.sql --yes
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0001_schema.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/003_create_scopes_table.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/004_create_comments_table.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0005_hall_of_fame.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0006_response_templates.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0007_remove_stored_names.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0008_add_title_disclosed.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0009_add_internal_flags.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0010_convert_assigned_to_user_ids.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0011_support_user_audit_logs.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0012_scope_enhancements.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0013_hof_enhancements.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/0014_researcher_features.sql
 ```
+
+Run data maintenance scripts only after the schema migrations they depend on:
+
+```bash
+npx wrangler d1 execute vanguard-security --remote --file=migrations/backfill_hall_of_fame.sql
+npx wrangler d1 execute vanguard-security --remote --file=migrations/redact_existing_pii.sql
+```
+
+> **Adding new migrations:** Use four-digit zero-padded prefixes starting at `0015_` and keep `lib/db/schema.ts` aligned with the resulting schema.
 
 ### 3.5 Verify Database
 
@@ -274,7 +288,20 @@ Roles are stored in Clerk's `publicMetadata`. Valid values:
 ```
 5. Save, then have the user sign out and back in (session cache must refresh)
 
-> See [ROLE_SETUP_INSTRUCTIONS.md](ROLE_SETUP_INSTRUCTIONS.md) for full detail.
+**Important:** The role value must be exactly `"ADMIN"` — all caps, in quotes. Lowercase (`"admin"`) will not work.
+
+**Via Clerk API (alternative):**
+```bash
+curl -X PATCH https://api.clerk.com/v1/users/YOUR_USER_ID \
+  -H "Authorization: Bearer YOUR_CLERK_SECRET_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"public_metadata": {"role": "ADMIN"}}'
+```
+
+**Troubleshooting role issues:**
+- Still getting 403 after setting role → sign out and back in (role is cached in session)
+- Role shows as `undefined` in logs → check Clerk dashboard — metadata must be in **Public** tab, not Private
+- Metadata shows correct role but still 403 → clear browser cookies and sign in again
 
 ### Production Keys
 
@@ -481,3 +508,59 @@ You should see the admin dashboard.
 ### Google OAuth `Error 400: invalid_request — Missing required parameter: client_id`
 - **Cause:** Google OAuth credentials not configured in Clerk Social Connections.
 - **Fix:** Create OAuth app in Google Cloud Console, add the callback URI, paste credentials into Clerk → Configure → Social Connections → Google.
+
+---
+
+## Step 10: Data Deletion (GDPR / Right to Erasure)
+
+### Find the User's Clerk ID
+
+```bash
+npx wrangler d1 execute vanguard-security --remote --command="SELECT DISTINCT actor_id, actor_email FROM audit_logs WHERE actor_email = 'user@example.com' LIMIT 1;"
+```
+
+### Delete All User Data from D1
+
+Run in this order to avoid foreign key constraint errors:
+
+```bash
+USER="user_CLERK_ID_HERE"
+EMAIL="user@example.com"
+
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM comments WHERE author_id = '$USER';"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM researcher_stats WHERE researcher_id = '$USER';"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM hall_of_fame WHERE researcher_id = '$USER';"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM hacktivity WHERE researcher_id = '$USER';"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM report_drafts WHERE clerk_user_id = '$USER';"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM comments WHERE report_id IN (SELECT id FROM reports WHERE clerk_user_id = '$USER');"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM audit_logs WHERE report_id IN (SELECT id FROM reports WHERE clerk_user_id = '$USER');"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM audit_logs WHERE actor_id = '$USER' OR actor_email = '$EMAIL';"
+npx wrangler d1 execute vanguard-security --remote --command="DELETE FROM reports WHERE clerk_user_id = '$USER';"
+```
+
+### Verify Deletion
+
+```bash
+npx wrangler d1 execute vanguard-security --remote --command="
+SELECT
+  (SELECT COUNT(*) FROM reports WHERE clerk_user_id = '$USER') as reports,
+  (SELECT COUNT(*) FROM audit_logs WHERE actor_id = '$USER') as audit_logs,
+  (SELECT COUNT(*) FROM comments WHERE author_id = '$USER') as comments,
+  (SELECT COUNT(*) FROM hall_of_fame WHERE researcher_id = '$USER') as hall_of_fame,
+  (SELECT COUNT(*) FROM researcher_stats WHERE researcher_id = '$USER') as researcher_stats,
+  (SELECT COUNT(*) FROM report_drafts WHERE clerk_user_id = '$USER') as drafts;
+"
+```
+
+All counts should be `0`.
+
+### Delete from Clerk
+
+Go to **Clerk Dashboard → Users → [user] → Delete user**, or:
+
+```bash
+curl -X DELETE "https://api.clerk.com/v1/users/$USER" \
+  -H "Authorization: Bearer YOUR_CLERK_SECRET_KEY"
+```
+
+> **Note:** This satisfies GDPR Right to Erasure. Ensure database backups are also purged per your retention policy.
