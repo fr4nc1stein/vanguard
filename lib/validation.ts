@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const SEVERITIES = ['Critical', 'High', 'Medium', 'Low', 'Info'] as const;
 export type  Severity   = (typeof SEVERITIES)[number];
 
-export const VALID_STATUSES = ['new', 'triaged', 'accepted', 'rejected', 'fixed', 'informational'] as const;
+export const VALID_STATUSES = ['new', 'triaged', 'accepted', 'rejected', 'fixed', 'informational', 'duplicate'] as const;
 export type  ReportStatus   = (typeof VALID_STATUSES)[number];
 
 export const TEMPLATE_CATEGORIES = ['triage', 'acceptance', 'rejection', 'info_request', 'general'] as const;
@@ -114,7 +114,7 @@ export const PaginationSchema = z.object({
   severity:    z.enum(SEVERITIES).optional(),
   target:      z.string().max(255).optional(),
   q:           z.string().max(255).optional(),
-  assignedTo:  z.string().email().optional(),
+  assignedTo:  z.string().max(255).optional(),
   unassigned:  z.string().optional(),
   clerkUserId: z.string().max(255).optional(),
   labelId:     z.string().max(255).optional(),
@@ -150,7 +150,7 @@ const LABEL_COLORS = [
 ] as const;
 
 export const LabelCreateSchema = z.object({
-  name:  z.string().min(1, 'Name is required').max(50, 'Name too long'),
+  name:  z.string().trim().min(1, 'Name is required').max(50, 'Name too long'),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color').optional().default('#6b7280'),
 });
 
@@ -160,11 +160,14 @@ export { LABEL_COLORS };
 // ── Saved Filters ─────────────────────────────────────────────────────────────
 
 export const SavedFilterCreateSchema = z.object({
-  name:        z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  filter_json: z.record(z.string(), z.string().nullable()).refine(
-    (v) => Object.keys(v).length <= 20,
-    'Too many filter keys',
-  ),
+  name:        z.string().trim().min(1, 'Name is required').max(100, 'Name too long'),
+  filter_json: z.object({
+    status:     z.enum(VALID_STATUSES).nullable().optional(),
+    severity:   z.enum(SEVERITIES).nullable().optional(),
+    labelId:    z.string().max(255).nullable().optional(),
+    assignment: z.enum(['all', 'mine', 'unassigned']).nullable().optional(),
+    q:          z.string().max(255).nullable().optional(),
+  }).strict(),
 });
 
 export type SavedFilterCreateInput = z.infer<typeof SavedFilterCreateSchema>;

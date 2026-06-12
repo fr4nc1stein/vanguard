@@ -24,7 +24,8 @@ export async function DELETE(
 
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    await db.delete(savedFilters).where(eq(savedFilters.id, id));
+    await db.delete(savedFilters)
+      .where(and(eq(savedFilters.id, id), eq(savedFilters.userId, userId)));
     return NextResponse.json({ success: true });
   } catch (err) {
     if (err instanceof Response) return err;

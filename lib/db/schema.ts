@@ -1,4 +1,4 @@
-import { text, integer, sqliteTable } from 'drizzle-orm/sqlite-core';
+import { text, integer, sqliteTable, primaryKey } from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
 
 // ── Reports ───────────────────────────────────────────────────────────────────
@@ -147,7 +147,9 @@ export const reportLabels = sqliteTable('report_labels', {
   labelId:   text('label_id').notNull().references(() => labels.id, { onDelete: 'cascade' }),
   addedBy:   text('added_by').notNull(),
   addedAt:   integer('added_at').notNull(),
-});
+}, (table) => ({
+  pk: primaryKey({ columns: [table.reportId, table.labelId] }),
+}));
 
 // ── Saved Filters ─────────────────────────────────────────────────────────────
 export const savedFilters = sqliteTable('saved_filters', {

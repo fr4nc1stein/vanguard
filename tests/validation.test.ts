@@ -33,13 +33,13 @@ describe('Validation Module', () => {
     });
 
     describe('VALID_STATUSES', () => {
-      it('should have 6 valid statuses', () => {
-        expect(VALID_STATUSES).toHaveLength(6);
+      it('should have 7 valid statuses', () => {
+        expect(VALID_STATUSES).toHaveLength(7);
       });
 
       it('should have all expected status values', () => {
         expect(VALID_STATUSES).toEqual([
-          'new', 'triaged', 'accepted', 'rejected', 'fixed', 'informational'
+          'new', 'triaged', 'accepted', 'rejected', 'fixed', 'informational', 'duplicate'
         ]);
       });
     });
@@ -543,16 +543,16 @@ describe('Validation Module', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should validate assignedTo as email', () => {
+    it('should validate assignedTo as a Clerk user ID', () => {
       const result = PaginationSchema.safeParse({
-        assignedTo: 'triager@example.com',
+        assignedTo: 'user_2abc123',
       });
       expect(result.success).toBe(true);
     });
 
-    it('should reject invalid email for assignedTo', () => {
+    it('should reject assignedTo longer than 255 characters', () => {
       const result = PaginationSchema.safeParse({
-        assignedTo: 'not-an-email',
+        assignedTo: 'a'.repeat(256),
       });
       expect(result.success).toBe(false);
     });

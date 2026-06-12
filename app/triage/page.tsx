@@ -5,6 +5,7 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import ReportStatusBadge from "../components/ReportStatusBadge";
 import Pagination from "../components/Pagination";
+import { useUser } from "@clerk/nextjs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Stats {
@@ -44,9 +45,19 @@ interface SavedFilter {
   filterJson: string;
 }
 
-const STATUSES = ["all", "new", "triaged", "accepted", "fixed", "rejected", "informational"] as const;
-const SEVERITIES = ["all", "critical", "high", "medium", "low", "informational"] as const;
-const BULK_STATUSES = ["triaged", "accepted", "rejected", "fixed", "informational"] as const;
+const STATUSES = ["all", "new", "triaged", "accepted", "fixed", "rejected", "informational", "duplicate"] as const;
+const SEVERITIES = ["all", "Critical", "High", "Medium", "Low", "Info"] as const;
+const BULK_STATUSES = ["new", "triaged", "accepted", "rejected", "fixed", "informational", "duplicate"] as const;
+
+const NEXT_STATUSES: Record<string, readonly string[]> = {
+  new:           ["triaged", "rejected", "informational", "duplicate"],
+  triaged:       ["accepted", "rejected", "informational", "duplicate"],
+  accepted:      ["fixed", "rejected"],
+  rejected:      ["accepted", "triaged"],
+  fixed:         ["accepted"],
+  informational: ["triaged", "new"],
+  duplicate:     ["triaged", "new"],
+};
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: "text-red-700 bg-red-50 border-red-200",
@@ -84,6 +95,7 @@ function LabelChip({ label, onRemove }: { label: LabelInfo; onRemove?: () => voi
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
+  const { user } = useUser();
   const [stats, setStats] = useState<Stats | null>(null);
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, per_page: 20, pages: 1 });
@@ -97,8 +109,7 @@ export default function AdminDashboard() {
   const [sortField, setSortField] = useState<keyof ReportRow>("submittedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [assignmentFilter, setAssignmentFilter] = useState<"all" | "mine" | "unassigned">("all");
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const currentUserId = user?.id ?? null;
   const [researcherFilter, setResearcherFilter] = useState<string | null>(null);
   const [hasReadUrlFilters, setHasReadUrlFilters] = useState(false);
 
@@ -132,7 +143,7 @@ export default function AdminDashboard() {
     if (filterSeverity !== "all") params.set("severity", filterSeverity);
     if (search)                   params.set("q", search);
     if (filterLabelId)            params.set("label_id", filterLabelId);
-    if (assignmentFilter === "mine" && currentUserEmail) params.set("assigned_to", currentUserEmail);
+    if (assignmentFilter === "mine" && currentUserId) params.set("assigned_to", currentUserId);
     if (assignmentFilter === "unassigned") params.set("unassigned", "true");
     if (researcherFilter) params.set("clerk_user_id", researcherFilter);
 
@@ -148,7 +159,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [page, filterStatus, filterSeverity, search, filterLabelId, assignmentFilter, currentUserEmail, researcherFilter, hasReadUrlFilters]);
+  }, [page, filterStatus, filterSeverity, search, filterLabelId, assignmentFilter, currentUserId, researcherFilter, hasReadUrlFilters]);
 
   const fetchLabels = useCallback(async () => {
     try {
@@ -237,13 +248,6 @@ export default function AdminDashboard() {
     const params = new URLSearchParams(window.location.search);
     setResearcherFilter(params.get("clerk_user_id"));
     setHasReadUrlFilters(true);
-  }, []);
-
-  useEffect(() => {
-    const storedEmail = localStorage.getItem('userEmail');
-    if (storedEmail) setCurrentUserEmail(storedEmail);
-    const storedId = localStorage.getItem('userId');
-    if (storedId) setCurrentUserId(storedId);
   }, []);
 
   // Clear selection when page/filters change
@@ -369,11 +373,12 @@ export default function AdminDashboard() {
   function applyFilter(sf: SavedFilter) {
     try {
       const f: Record<string, string | null> = JSON.parse(sf.filterJson);
-      if (f.status)     setFilterStatus(f.status);
-      if (f.severity)   setFilterSeverity(f.severity);
-      if (f.labelId)    setFilterLabelId(f.labelId);
-      if (f.assignment) setAssignmentFilter(f.assignment as 'all' | 'mine' | 'unassigned');
-      if (f.q)          { setSearch(f.q); setSearchInput(f.q); }
+      setFilterStatus(f.status ?? 'all');
+      setFilterSeverity(f.severity ?? 'all');
+      setFilterLabelId(f.labelId ?? null);
+      setAssignmentFilter((f.assignment ?? 'all') as 'all' | 'mine' | 'unassigned');
+      setSearch(f.q ?? '');
+      setSearchInput(f.q ?? '');
       setPage(1);
     } catch { /* malformed */ }
     setShowSavedFiltersMenu(false);
@@ -522,7 +527,7 @@ export default function AdminDashboard() {
             >
               {SEVERITIES.map((s) => (
                 <option key={s} value={s}>
-                  {s === "all" ? "All Severities" : s.charAt(0).toUpperCase() + s.slice(1)}
+                  {s === "all" ? "All Severities" : s}
                 </option>
               ))}
             </select>
@@ -789,7 +794,7 @@ export default function AdminDashboard() {
                                 title="Quick status change"
                               >
                                 <option value="" disabled>⚡</option>
-                                {BULK_STATUSES.filter((s) => s !== r.status).map((s) => (
+                                {(NEXT_STATUSES[r.status] ?? BULK_STATUSES.filter((s) => s !== r.status)).map((s) => (
                                   <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                                 ))}
                               </select>

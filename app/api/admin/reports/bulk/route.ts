@@ -72,7 +72,14 @@ export async function PATCH(request: NextRequest) {
         });
 
         if (newStatus === 'accepted' || newStatus === 'fixed') {
-          awardPoints(report.id, userId).catch(console.error);
+          try {
+            const awardResult = await awardPoints(report.id, userId);
+            if (awardResult.error) {
+              console.error(`[Bulk Auto-Award] Error: ${awardResult.error}`);
+            }
+          } catch (error) {
+            console.error('[Bulk Auto-Award] Exception:', error);
+          }
         }
         updated++;
       }
