@@ -132,12 +132,49 @@ export const hacktivity = sqliteTable('hacktivity', {
   timestamp:      integer('timestamp').notNull(),
 });
 
+// ── Labels ────────────────────────────────────────────────────────────────────
+export const labels = sqliteTable('labels', {
+  id:        text('id').primaryKey(),
+  name:      text('name').notNull(),
+  color:     text('color').notNull().default('#6b7280'),
+  createdBy: text('created_by').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
+// ── Report Labels (junction) ──────────────────────────────────────────────────
+export const reportLabels = sqliteTable('report_labels', {
+  reportId:  text('report_id').notNull().references(() => reports.id, { onDelete: 'cascade' }),
+  labelId:   text('label_id').notNull().references(() => labels.id, { onDelete: 'cascade' }),
+  addedBy:   text('added_by').notNull(),
+  addedAt:   integer('added_at').notNull(),
+});
+
+// ── Saved Filters ─────────────────────────────────────────────────────────────
+export const savedFilters = sqliteTable('saved_filters', {
+  id:         text('id').primaryKey(),
+  userId:     text('user_id').notNull(),
+  name:       text('name').notNull(),
+  filterJson: text('filter_json').notNull(),
+  createdAt:  integer('created_at').notNull(),
+  updatedAt:  integer('updated_at').notNull(),
+});
+
 // ── Relations ─────────────────────────────────────────────────────────────────
 export const reportsRelations = relations(reports, ({ many }) => ({
-  auditLogs: many(auditLogs),
-  comments: many(comments),
-  hallOfFame: many(hallOfFame),
-  hacktivity: many(hacktivity),
+  auditLogs:    many(auditLogs),
+  comments:     many(comments),
+  hallOfFame:   many(hallOfFame),
+  hacktivity:   many(hacktivity),
+  reportLabels: many(reportLabels),
+}));
+
+export const labelsRelations = relations(labels, ({ many }) => ({
+  reportLabels: many(reportLabels),
+}));
+
+export const reportLabelsRelations = relations(reportLabels, ({ one }) => ({
+  report: one(reports, { fields: [reportLabels.reportId], references: [reports.id] }),
+  label:  one(labels,  { fields: [reportLabels.labelId],  references: [labels.id]  }),
 }));
 
 export const commentsRelations = relations(comments, ({ one }) => ({
@@ -193,3 +230,10 @@ export type Severity     = 'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
 export type UserRole     = 'USER' | 'TRIAGER' | 'ADMIN';
 export type TargetType   = 'web_app' | 'api' | 'mobile' | 'infrastructure';
 export type ScopeStatus  = 'active' | 'deprecated' | 'out_of_scope';
+
+export type Label           = typeof labels.$inferSelect;
+export type NewLabel        = typeof labels.$inferInsert;
+export type ReportLabel     = typeof reportLabels.$inferSelect;
+export type NewReportLabel  = typeof reportLabels.$inferInsert;
+export type SavedFilter     = typeof savedFilters.$inferSelect;
+export type NewSavedFilter  = typeof savedFilters.$inferInsert;

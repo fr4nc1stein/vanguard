@@ -117,6 +117,7 @@ export const PaginationSchema = z.object({
   assignedTo:  z.string().email().optional(),
   unassigned:  z.string().optional(),
   clerkUserId: z.string().max(255).optional(),
+  labelId:     z.string().max(255).optional(),
 });
 
 export type PaginationInput = z.infer<typeof PaginationSchema>;
@@ -140,3 +141,43 @@ export const TemplateUpdateSchema = z.object({
 
 export type TemplateCreateInput = z.infer<typeof TemplateCreateSchema>;
 export type TemplateUpdateInput = z.infer<typeof TemplateUpdateSchema>;
+
+// ── Labels ────────────────────────────────────────────────────────────────────
+
+const LABEL_COLORS = [
+  '#ef4444', '#f97316', '#eab308', '#22c55e',
+  '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280',
+] as const;
+
+export const LabelCreateSchema = z.object({
+  name:  z.string().min(1, 'Name is required').max(50, 'Name too long'),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color').optional().default('#6b7280'),
+});
+
+export type LabelCreateInput = z.infer<typeof LabelCreateSchema>;
+export { LABEL_COLORS };
+
+// ── Saved Filters ─────────────────────────────────────────────────────────────
+
+export const SavedFilterCreateSchema = z.object({
+  name:        z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  filter_json: z.record(z.string(), z.string().nullable()).refine(
+    (v) => Object.keys(v).length <= 20,
+    'Too many filter keys',
+  ),
+});
+
+export type SavedFilterCreateInput = z.infer<typeof SavedFilterCreateSchema>;
+
+// ── Bulk Actions ──────────────────────────────────────────────────────────────
+
+export const BulkActionSchema = z.object({
+  reportIds: z.array(z.string().min(1)).min(1, 'Select at least one report').max(100, 'Too many reports'),
+  action:    z.enum(['set_status', 'assign_to_me']),
+  status:    z.enum(VALID_STATUSES).optional(),
+}).refine(
+  (v) => v.action !== 'set_status' || v.status !== undefined,
+  { message: 'status required for set_status action', path: ['status'] },
+);
+
+export type BulkActionInput = z.infer<typeof BulkActionSchema>;

@@ -2,9 +2,9 @@
  * GET /api/admin/reports — Paginated report list (TRIAGER / ADMIN only)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, desc, and, like, sql, isNull } from 'drizzle-orm';
+import { eq, desc, and, like, sql, isNull, inArray } from 'drizzle-orm';
 import { getDb, getCfEnv } from '@/lib/db';
-import { reports } from '@/lib/db/schema';
+import { reports, labels, reportLabels } from '@/lib/db/schema';
 import { requireRole } from '@/lib/auth';
 import { PaginationSchema } from '@/lib/validation';
 import { clerkClient } from '@clerk/nextjs/server';
@@ -26,13 +26,30 @@ export async function GET(request: NextRequest) {
       assignedTo:  sp.get('assigned_to') ?? undefined,
       unassigned:  sp.get('unassigned') ?? undefined,
       clerkUserId: sp.get('clerk_user_id') ?? undefined,
+      labelId:     sp.get('label_id') ?? undefined,
     });
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid query params' }, { status: 400 });
     }
-    const { page = 1, per_page = 20, status, severity, target, q, assignedTo, unassigned, clerkUserId } = parsed.data;
+    const { page = 1, per_page = 20, status, severity, target, q, assignedTo, unassigned, clerkUserId, labelId } = parsed.data;
 
     const db = getDb(getCfEnv().DB);
+
+    // If filtering by label, resolve to matching report IDs first
+    let labelReportIds: string[] | null = null;
+    if (labelId) {
+      const labelRows = await db
+        .select({ reportId: reportLabels.reportId })
+        .from(reportLabels)
+        .where(eq(reportLabels.labelId, labelId));
+      labelReportIds = labelRows.map((r) => r.reportId);
+      if (labelReportIds.length === 0) {
+        return NextResponse.json({
+          reports: [],
+          pagination: { page, per_page, total: 0, pages: 0 },
+        });
+      }
+    }
 
     // Build where conditions
     const conditions = [];
@@ -42,8 +59,8 @@ export async function GET(request: NextRequest) {
     if (assignedTo) conditions.push(eq(reports.assignedTo, assignedTo));
     if (unassigned === 'true') conditions.push(isNull(reports.assignedTo));
     if (clerkUserId) conditions.push(eq(reports.clerkUserId, clerkUserId));
+    if (labelReportIds) conditions.push(inArray(reports.id, labelReportIds));
     if (q) {
-      // Sanitize user input to prevent SQL injection via LIKE wildcards
       const sanitized = q.replace(/[%_\\]/g, '\\$&');
       conditions.push(like(reports.title, `%${sanitized}%`));
     }
@@ -75,6 +92,22 @@ export async function GET(request: NextRequest) {
 
     const total = countRow?.count ?? 0;
 
+    // Fetch labels for this page of reports in one query
+    const reportIds = rows.map((r) => r.id);
+    const labelRows = reportIds.length > 0
+      ? await db
+          .select({ reportId: reportLabels.reportId, label: labels })
+          .from(reportLabels)
+          .innerJoin(labels, eq(reportLabels.labelId, labels.id))
+          .where(inArray(reportLabels.reportId, reportIds))
+      : [];
+
+    const labelsByReportId: Record<string, { id: string; name: string; color: string }[]> = {};
+    for (const row of labelRows) {
+      if (!labelsByReportId[row.reportId]) labelsByReportId[row.reportId] = [];
+      labelsByReportId[row.reportId].push(row.label);
+    }
+
     // Enrich reports with triager names from Clerk
     const enrichedReports = await Promise.all(
       rows.map(async (report) => {
@@ -91,6 +124,7 @@ export async function GET(request: NextRequest) {
         return {
           ...report,
           assignedTo: assignedToName,
+          labels: labelsByReportId[report.id] ?? [],
         };
       })
     );

@@ -24,7 +24,11 @@ export type AuditAction =
   | 'scope_created'
   | 'scope_updated'
   | 'scope_archived'
-  | 'template_used';
+  | 'template_used'
+  | 'label_added'
+  | 'label_removed'
+  | 'bulk_status_changed'
+  | 'bulk_assigned';
 
 // Internal actions that should only be visible to triagers/admins
 const INTERNAL_ACTIONS: AuditAction[] = [
